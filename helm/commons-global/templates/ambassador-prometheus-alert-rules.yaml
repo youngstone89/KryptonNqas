@@ -1,0 +1,28 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.ambassador.alertRules.enabled true) (eq .Values.commons.prometheusOperator.enable true) }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "commons-global.fullname" . }}-ambassador-alert-rules
+  labels:
+{{ toYaml .Values.commons.prometheusOperator.prometheusRulesLabels | indent 4 }}
+    app: {{ template "commons-global.name" . }}-ambassador-alert-rules
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    pool: {{ template "commons-global.name" . }}-alert-rules
+  namespace: {{ .Values.commons.prometheusOperator.namespace }}
+spec:
+  groups:
+    - name: ./ambassador-alerting.rules
+      rules:
+      - alert: ambassador-pod_container_ambassador_restart-{{ .Release.Name }}
+        expr: sum(round(increase(kube_pod_container_status_restarts_total{job="kube-state-metrics", namespace="{{ .Release.Namespace }}", pod=~"ambassador.*",container="ambassador"}[{{ .Values.commons.alertConfigurations.ambassador.podRestart.timeRange }}]))) > {{ .Values.commons.alertConfigurations.ambassador.podRestart.avgThresholdCount }}
+        for: {{ .Values.commons.alertConfigurations.ambassador.podRestart.timeInterval }}
+        labels:
+          severity: critical
+          {{ toYaml .Values.commons.alertConfigurations.alertLabels | nindent 10 }}
+        annotations:
+          summary: Frequent container restart observed for "ambassador" and for container  "ambassador" in namespace "{{ .Release.Namespace }}".
+
+{{- end}}

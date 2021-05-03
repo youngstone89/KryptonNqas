@@ -1,0 +1,21 @@
+{{- if eq .Values.persistence.volumeType "nfs"}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ template "krypton.fullname" . }}
+  labels:
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  storageClassName: ""
+  capacity:
+    storage: {{ .Values.persistence.storage }}
+  accessModes:
+    - ReadOnlyMany
+  nfs:
+    server: {{ .Values.persistence.nfs.server }}
+    path: {{ .Values.persistence.nfs.path | quote }}
+    readOnly: true
+{{- end}}

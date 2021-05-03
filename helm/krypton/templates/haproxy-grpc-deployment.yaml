@@ -1,0 +1,100 @@
+{{- if eq .Values.haproxyGrpc.enable true}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+{{ toYaml .Values.haproxyGrpc.deployment.annotations | indent 4 }}   
+  name: {{ template "krypton.fullname" . }}-haproxy-grpc
+  labels:
+    app: {{ template "krypton.name" . }}-haproxy-grpc
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "krypton.name" . }}-haproxy-grpc
+      release: {{ .Release.Name }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: {{ .Values.haproxyGrpc.strategy.rollingUpdate.maxUnavailable }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "krypton.name" . }}-haproxy-grpc
+        release: {{ .Release.Name }}
+{{- if .Values.deployment.podLabels }} 
+        {{ toYaml .Values.haproxyGrpc.deployment.podLabels | nindent 8 }}   
+{{- end }}        
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/haproxy-grpc-configmap.yaml") . | sha256sum }}
+{{- if .Values.haproxyGrpc.deployment.podAnnotations }} 
+        {{ toYaml .Values.haproxyGrpc.deployment.podAnnotations | nindent 8 }}   
+{{- end }} 
+    spec:
+      affinity:
+{{ toYaml .Values.haproxyGrpc.affinity | indent 8 }}
+      nodeSelector:
+{{ toYaml .Values.haproxyGrpc.nodeSelector | indent 8 }}
+      imagePullSecrets:
+{{ toYaml .Values.haproxyGrpc.imagePullSecrets | indent 8 }}
+      containers:
+      - name: haproxy-grpc
+        image: {{ .Values.haproxyGrpc.image.repository }}:{{ .Values.haproxyGrpc.image.tag }}
+        imagePullPolicy: {{ .Values.haproxyGrpc.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.haproxyGrpc.resources | indent 10 }}
+        ports:
+          - name: grpc
+            containerPort: 80
+          - name: health
+            containerPort: 10253
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: haproxy-grpc-config-volume
+          mountPath: /usr/local/etc/haproxy/haproxy.cfg
+          subPath: haproxy.cfg
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      volumes:
+        - name: haproxy-grpc-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}-haproxy-grpc-configmap
+            items:
+            - key: haproxy.cfg
+              path: haproxy.cfg
+              mode: 420
+{{- end }}

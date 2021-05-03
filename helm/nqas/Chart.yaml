@@ -1,0 +1,7 @@
+apiVersion: v1
+appVersion: 4.3.0-gl557647
+description: A Helm chart for NQAS service
+maintainers:
+- name: nuance-coretech
+name: nqas
+version: 4.3.0-gl557647

@@ -1,0 +1,167 @@
+{{- define "alert-rules-labels" -}}
+
+app: {{ template "krypton-router.name" . }}
+chart: {{ template "krypton-router.chart" . }}
+release: {{ .Release.Name }}
+
+{{- if .Values.image.tag }}
+image: {{ .Values.image.tag }}
+{{- end }}
+
+{{- if .Values.alertConfigurations.alertLabels }} 
+{{ toYaml .Values.alertConfigurations.alertLabels}}  
+{{- end }}
+
+{{- end }}
+
+{{- define "alert-rules" -}}
+groups:
+- name: ./{{ .Release.Name }}-alerting.rules
+  rules:
+  
+  #-------------------------------
+  - alert: kro-route_unavailable
+    annotations:
+      summary: >-
+        Excessive pod unavailability observed for {{"{{"}} $labels.datapack {{"}}"}}
+    labels:
+      severity: warning
+      {{- include "alert-rules-labels" . | nindent 6 }}
+    for: {{ .Values.alertConfigurations.routeUnavailable.timeInterval }}
+    expr: >-
+      sum by(datapack,service) (
+        increase (
+          kro_route_unavailable
+              {namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+              [{{ .Values.alertConfigurations.routeUnavailable.timeRange }}]
+        )
+      )
+      /
+      sum by(datapack,service) (
+        increase (
+          kro_route_request
+              {namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+              [{{ .Values.alertConfigurations.routeUnavailable.timeRange }}]
+        )
+      )
+      * 100
+        >= {{ .Values.alertConfigurations.routeUnavailable.percentageThreshold }}
+  
+  #-------------------------------
+  - alert: kro-response_latency
+    annotations:
+      summary: >-
+        High response latency observed for service {{ template "krypton-router.fullname" . }}.
+        This is the latency in getting an initial response from the Krypton instance that was
+        successfully assigned to a reqeuest.
+    labels:
+      severity: warning
+      {{- include "alert-rules-labels" . | nindent 6 }}
+    for: {{ .Values.alertConfigurations.responseLatency.timeInterval }}
+    expr: >-
+      increase (
+        kro_response_latency_ms_sum
+            {namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+            [{{ .Values.alertConfigurations.responseLatency.timeRange }}]
+      )
+      /
+      increase (
+        kro_response_latency_ms_count
+            {namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+            [{{ .Values.alertConfigurations.responseLatency.timeRange }}]
+      )
+        > {{ .Values.alertConfigurations.responseLatency.timeThresholdMs }}
+  
+  #-------------------------------
+  - alert: kro-redis_error
+    annotations:
+      summary: Excessive Redis errors observed for service {{ template "krypton-router.fullname" . }}.
+    labels:
+      severity: error
+      {{- include "alert-rules-labels" . | nindent 6 }}
+    for: {{ .Values.alertConfigurations.redisError.timeInterval }}
+    expr: >-
+      sum by (service) (
+        increase (
+          kro_redis_error
+              {namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+              [{{ .Values.alertConfigurations.redisError.timeRange }}]
+        )
+      )
+        > {{ .Values.alertConfigurations.redisError.countThreshold }}
+  
+  #-------------------------------
+  - alert: kro-redis_reconnect
+    annotations:
+      summary: Excessive Redis reconnects observed for service {{ template "krypton-router.fullname" . }}.
+    labels:
+      severity: info
+      {{- include "alert-rules-labels" . | nindent 6 }}
+    for: {{ .Values.alertConfigurations.redisReconnect.timeInterval }}
+    expr: >-
+      sum by (service) (
+        increase (
+          kro_redis_reconnect{namespace="{{ .Release.Namespace }}",service="{{ template "krypton-router.fullname" . }}"}
+                             [{{ .Values.alertConfigurations.redisReconnect.timeRange }}]
+        )
+      )
+        > {{ .Values.alertConfigurations.redisReconnect.countThreshold }}
+
+  #-------------------------------
+  - alert: kro-pod_container_restart
+    annotations:
+      summary: Frequent {{"{{"}} $labels.container {{"}}"}} container restart observed for pod {{"{{"}} $labels.pod {{"}}"}}
+    labels:
+      severity: critical
+      {{- include "alert-rules-labels" . | nindent 6 }}
+    for: {{ .Values.alertConfigurations.podRestart.timeInterval }}
+    expr: >-
+      sum by(pod,container) (
+        increase (
+          kube_pod_container_status_restarts_total{
+            job="kube-state-metrics",
+            namespace="{{ .Release.Namespace }}",
+            pod=~"{{ template "krypton-router.fullname" . }}.*"
+          }
+          [{{ .Values.alertConfigurations.podRestart.timeRange }}]
+        )
+      )
+        > {{ .Values.alertConfigurations.podRestart.countThreshold }}
+
+{{- end }}
+
+{{- if eq .Values.alertConfigurations.enableAlerts true }}
+
+{{- if eq .Values.prometheusOperator.enable false -}}
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "krypton-router.fullname" . }}-alerts
+  annotations:
+    {{- toYaml .Values.alertConfigurations.configmap.annotations | nindent 4 }}
+  labels:
+    {{- toYaml .Values.prometheus.alerts.selectorLabels | nindent 4 }}
+data:
+  alert-rules.yaml: |-
+    {{- include "alert-rules" . | nindent 4 }}
+
+{{- else -}}
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "krypton-router.fullname" . }}
+  labels:
+    {{- toYaml .Values.prometheusOperator.prometheusRulesLabels | nindent 4 }}
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+spec:
+  {{- include "alert-rules" . | nindent 2 }}
+
+{{- end }}
+
+{{- end }}

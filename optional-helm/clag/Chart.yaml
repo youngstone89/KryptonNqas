@@ -1,0 +1,7 @@
+apiVersion: v1
+appVersion: 1.2.0-gl503250
+description: Call Log Aggregator Helm Chart
+maintainers:
+- name: nuance-coretech
+name: clag
+version: 1.2.0-gl503250

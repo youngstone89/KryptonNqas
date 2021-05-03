@@ -1,0 +1,25 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "commons-global.fullname" . }}-exporter
+  labels:
+    app: {{ template "commons-global.name" . }}-exporter
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "commons-global.fullname" . }}-exporter
+  annotations:
+{{ toYaml .Values.haproxyIngress.prometheusMetricsExporterService.annotations | indent 4 }}
+spec:
+  ports:
+  - name: metrics-port
+    port: {{ .Values.haproxyIngress.prometheusMetricsExporterService.port }}
+    targetPort: metrics-port
+  selector:
+    app: {{ template "commons-global.name" . }}-haproxy
+    release: {{ .Release.Name }}
+  sessionAffinity: None
+  type: {{ .Values.haproxyIngress.prometheusMetricsExporterService.type }}
+{{- end}}

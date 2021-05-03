@@ -1,0 +1,298 @@
+## Configuration values for clag helm chart.
+
+replicaCount: 1
+
+image:
+  repository: ncr.nuance.com/xfabric-docker-dev/clag
+  tag: "1.2.0-gl503250"
+  pullPolicy: IfNotPresent
+
+configFileName: clagConfig
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  storageClass: ""
+  size: 10Gi
+
+statefulset:
+  annotations: {}
+  podLabels: {}
+runtimeConfigmap:
+  annotations: {}
+configmap:
+  annotations: {}
+secrets:
+  annotations: {}
+networkPolicies:
+  annotations: {}  
+
+service:
+  type: ClusterIP
+  httpPort: 80
+  httpsPort: 443
+  annotations: {}
+   # prometheus.io/scrape: 'true'
+   # prometheus.io/port: '8080'
+   # prometheus.io/scheme: 'http'
+   # prometheus_io_path: '/metrics'
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 1000m
+  #  memory: 256Mi
+  # requests:
+  #  cpu: 200m
+  #  memory: 128Mi
+  
+##Additional environment for krypton
+#environment:
+#- name: SECRET_USERNAME
+#  valueFrom:
+#    secretKeyRef:
+#      name: mysecret
+#      key: username  
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+log:
+  enableFile: false
+  maxSize: 5242880
+  maxFiles: 5
+
+runtimeConfig:
+  log:
+    level: status
+
+http:
+  enabled: true
+  port: 8080
+
+https:
+  enabled: false
+  port: 8088
+  #secretName:
+  sslConfig: {}
+##keyFile and certFile should be placed in SSLCertificates directory
+  #  keyFile: '/app/config/certificates/server.key'
+  #  certFile: '/app/config/certificates/server.crt'
+  #  passphrase:
+  #  requestCert: false
+  #  rejectUnauthorized: false
+  #  caCertificates: []
+
+##log.enableFile should be set to true when fluentBitSideCar is enabled
+fluentBitSideCar:
+  enabled: false
+  resources: {}
+  image: 
+    repository: fluent/fluent-bit
+    tag: "1.0"
+    pullPolicy: IfNotPresent
+  kvslua: |-
+      function parse_kvs(tag, timestamp, record)
+         if record.kvs == nil then
+           return 0
+         end
+         -- Modify record in place
+         for k, v in string.gmatch(record.kvs, "([^,=]+)=([^,=]+)") do
+             record[k] = v
+         end
+         record.kvs = nil
+         return 1, timestamp, record
+      end
+  parser: |-
+      [PARSER]
+          Name clag
+          Format regex
+          Regex ^(?<timestamp>[^*]+) (-|\{(?<kvs>[^}]*)\}) (?<level>[^:]+): (?<message>.*)$
+          Time_Key timestamp
+          Time_Format %Y-%m-%dT%H:%M:%S.%L%Z
+  service: |-
+      [SERVICE]
+          Parsers_File parser.conf
+          storage.backlog.mem_limit 30M
+          HTTP_Listen               0.0.0.0
+          HTTP_Port                 7700
+          HTTP_Server               true
+  input: |-
+      [INPUT]
+          Name              tail
+          Path              /app/logs/*.log*
+          DB                /app/logs/fluentbit.db
+          Tag               diagnostic_logs
+  filter: |-
+      [FILTER]
+          Name     parser
+          Match    diagnostic_logs
+          Key_Name log
+          Parser   clag
+      [FILTER]
+          Name    lua
+          Match   diagnostic_logs
+          script  kvs.lua
+          call    parse_kvs
+      [FILTER]
+          Name record_modifier
+          Record POD_NAME                ${MY_POD_NAME}
+          Record POD_NAMESPACE           ${MY_POD_NAMESPACE}
+          Record NODE_NAME               ${MY_NODE_NAME}
+          Record POD_IP                  ${MY_POD_IP}
+          Record HELM_RELEASE_NAME       ${HELM_RELEASE_NAME}
+          Record SERVICE                 ${SERVICE}
+          Record IMAGE                   ${IMAGE}
+          Match                          diagnostic_logs
+  output: |-
+      #[OUTPUT]
+      #    name          splunk
+      #    host          <SPLUNK_HOST>
+      #    port          <SPLUNK_PORT>
+      #    tls           off
+      #    tls.verify    off
+      #    splunk_token  <SPLUNK_TOKEN>
+      #    Match         diagnostic_logs
+      #[OUTPUT]
+      #    name          es
+      #    host          <ELASTICSEARCH_HOST>
+      #    port          <ELASTICSEARCH_PORT>
+      #    tls           off
+      #    tls.verify    off
+      #    Index         krypton
+      #    Match         diagnostic_logs
+
+prometheusOperator:
+  enabled: false
+  namespace: monitoring
+  serviceMonitor: 
+    labels:
+      team: coretech
+    config:
+      interval: 10s
+      #scheme: https
+      #tlsConfig:
+      #  caFile: 
+      #  certFile:
+      #  insecureSkipVerify: true
+      #  keyFile:
+  prometheusRulesLabels:
+    prometheus: prometheus
+    role: alert-rules
+
+prometheus:
+  alerts:
+    selectorLabels: {}
+
+##Any change in clagConfig configurations coupled with helm release upgrade will trigger rolling update
+clagConfig:
+  bundleMetaAndAudioData: false
+  shutdownTimeout: 10000
+  useZipCommand: true
+  audioFileNameRegex: [(.*)(\$)(.*), (.*)(\.)(.*)]
+  bucketFolders:
+    dataPackId: dataPack.id
+    applicationId: clientData.applicationName
+  staleObjects:
+    cronExpression: '*/10 * * * *'
+    stalePeriodInHours: 5
+  collectionDirSealConfig:
+    metadataCountThreshold: 1000
+    enableDirSizeAudit: false
+    maxSizeInMB: 90
+    sizeAuditCronExpression: '*/15 * * * *'
+  catalogKeys:
+  - clientData.applicationName
+  minioClient:
+    url: <minio_url>
+    bucketName: krypton-call-logs
+    bucketRegion: us-east-1
+    accessKey: <obfuscated_accessKey>
+    secretKey: <obfuscated_secretKey>
+    rejectUnauthorized: false 
+    keyFile:
+    certFile:
+    passphrase:
+    servername: 
+    caCertificates: [] 
+    iamRole:
+  backPressureConfig:
+    maxUploadRetryCount: 5
+    maxArchiveRetryCount: 5
+    maxLocalDirectories: 25
+
+##Alert configuration
+alertConfiguration:
+  configmap:
+    annotations: {}
+  alertLabels:
+    alert_through: pagerduty-platform    
+  errorResponseAlert:
+    percentageThreshold: 5
+    timeRange: 5m
+  validationFailureAlert:
+    percentageThreshold: 5
+    timeRange: 5m
+  archiveAndExportFailureAlert:
+    percentageThreshold: 10
+    timeRange: 60m
+  incompleteSessionsAlert:
+    percentageThreshold: 5
+    timeRange: 10m
+  filePersistError:
+    percentageThreshold: 10
+    timeRange: 10m
+  podRestart:
+    timeInterval: 10m
+    timeRange: 30m
+    avgThresholdCount: 2    
+
+#securityContext:
+#  fsGroup: 2000
+#  runAsUser: 1000
+#  runAsNonRoot: true
+
+##--------------------------------------------------------------------------------------------------------------------------------
+###Network Policies Configuration
+#Default policies are to DENY ALL traffic except the DNS
+#Traffic From - Prometheus, Krypton
+#Traffic To - PushGateway, Jaeger, MinIO
+networkPolicy:
+  defaultEnabled: false
+  enabled: false
+  monitoring:
+    prometheus:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    pushgateway:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    jaeger:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+  krypton:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  minio:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}

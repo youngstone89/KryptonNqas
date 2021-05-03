@@ -1,0 +1,414 @@
+# This is a configuration file to create a NQAS pool
+
+image: 
+  repository: ncr.nuance.com/xasraas-docker-prod/nqas/nqas
+  tag: "4.3.0-gl557647"
+  pullPolicy: IfNotPresent
+configFileName: nqas
+##Configure imagePullSecrets to access private docker registry
+imagePullSecrets: []
+  #  - name: secret1
+##Number of nqas replica count
+replicas: 1
+##strategy.rollingUpdate.maxUnavailable field specifies the maximum number of Pods that can be unavailable during the update process
+##Configure suitable value depending on the environment 
+strategy:
+  rollingUpdate:
+    maxUnavailable: 0
+##Affinity configurations
+affinity: {}
+##Node selectors
+nodeSelector: {} 
+#Resource memory metrics config should be configured based on the datapack size. Any change in nqas.resources.* 
+#properties coupled with helm upgrade will trigger rolling update.
+resources: {}
+  #limits:
+  #  cpu: 400m
+  #  memory: 3G
+  #requests:
+  #  cpu: 125m
+  #  memory: 300M
+
+##-------------------------------------------------------------------------
+##AutoScaling configuration for nqas. 
+##Works effectively if all containers have request and limits defined in resources.
+##To use contanst maxReplicas, double quote the value ex: "5"
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: "{{ mul .Values.autoscaling.minReplicas 10 }}"
+  targetCPUUtilizationPercentage: 75
+  annotations: {}
+##-------------------------------------------------------------------------
+
+readiness:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 10
+
+liveness:
+  initialDelaySeconds: 240
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+##--------------------------------------------------------------------------------------------------------------------------------
+
+##runtimeConfig will change the runtime configmap values on helm upgrade. NQAS instances will adapt to the change
+##without restart
+runtimeConfig:
+  log:
+    level: status
+
+##--------------------------------------------------------------------------------------------------------------------------------
+
+https: 
+  enable: false
+  port: 8084
+  #secretName:
+  sslConfig: 
+##keyFile and certFile should be placed in SSLCertificates directory
+    keyFile: './SSLCertificates/server.key'
+    certFile: './SSLCertificates/server.crt'
+    passphrase:
+    requestCert: false
+    rejectUnauthorized: false
+    caCertificates: 
+
+http: 
+  enable: true
+  port: 8082
+
+##--------------------------------------------------------------------------------------------------------------------------------
+deployment:
+  annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+runtimeConfigmap:
+  annotations: {}
+customEnvConfigmap:
+  annotations: {}
+configmap:
+  annotations: {}
+secrets:
+  annotations: {}
+networkPolicies:
+  annotations: {}
+
+##--------------------------------------------------------------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  httpPort: 80
+  httpsPort: 443
+  annotations: {}
+   # prometheus.io/scrape: 'true'
+   # prometheus.io/port: '8082'
+   # prometheus.io/scheme: 'http'
+   # prometheus_io_path: '/metrics'
+
+##--------------------------------------------------------------------------------------------------------------------------------
+ingress:
+  annotations:
+    kubernetes.io/ingress.class: nuance-coretech
+    ingress.kubernetes.io/ssl-passthrough: "false"
+    ingress.kubernetes.io/rewrite-target: "/"
+    ingress.kubernetes.io/balance-algorithm: "leastconn"
+    ingress.kubernetes.io/ssl-redirect: "false"
+##If not configured the path is same as helm release name
+#  path: 
+##Ingress host configuration for virtual host based routing 
+#  host: nqas.local
+#  tls:
+#  - hosts:
+#    - nqas.local
+
+##--------------------------------------------------------------------------------------------------------------------------------
+prometheusOperator:
+  enable: false
+  namespace: monitoring
+  serviceMonitor:
+    labels:
+      team: coretech
+    config:
+      interval: 10s
+      #scheme: https
+      #tlsConfig:
+      #  caFile: 
+      #  certFile:
+      #  insecureSkipVerify: true
+      #  keyFile:
+  prometheusRulesLabels:
+    prometheus: prometheus
+    role: alert-rules
+
+prometheus:
+  alerts:
+    selectorLabels: {}
+
+##--------------------------------------------------------------------------------------------------------------------------------
+jaegerAgentSideCar:
+  enabled: false
+  image: jaegertracing/jaeger-agent
+  tag:  1.11.0
+  pullPolicy: IfNotPresent
+  cmdlineParams: {}
+  config:
+    collectorHostPort: <host>:<port>
+    # zipkinThriftPort :accept zipkin.thrift over compact thrift protocol
+    zipkinThriftPort: 5775
+    # compactPort: accept jaeger.thrift over compact thrift protocol
+    compactPort: 6831
+    # binaryPort: accept jaeger.thrift over binary thrift protocol
+    binaryPort: 6832
+    # samplingPort: (HTTP) serve configs, sampling strategies
+    samplingPort: 5778
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 256m
+    #   memory: 128Mi
+
+##--------------------------------------------------------------------------------------------------------------------------------
+diagnosticLogs:
+  level: 'info'
+  enableFile: false
+  maxSize: 5242880
+  maxFiles: 5
+  timestamp: true
+
+##--------------------------------------------------------------------------------------------------------------------------------
+grafana:
+  configmap:
+    annotations: {}
+  selectorLabels:
+    grafana_dashboard: "grafana_dashboard"
+  haproxyMetricsService: commons-global-exporter
+  datasource:
+    name: "Prometheus"
+    label: "Prometheus"
+    description: ""
+    type: "datasource"
+    pluginId: "prometheus"
+    pluginName: "Prometheus"
+
+##--------------------------------------------------------------------------------------------------------------------------------  
+config:
+  shutdownTimeoutMs: 10000 
+  jobExpiration: 3600
+  enableInfoEvents: true
+  enableCallLogEvents: false
+  appendFilenameWhenUploading: false
+  binaryWordsetMaxItemCount: 1000
+  enableRuntimeConfig: true
+  #pushGatewayURL: 
+  protocol:
+    defaultVersion: '1.0'
+  additionalInitializeParameters:
+    DisableSharedMemory: false
+##License server configuration, change in license path coupled with helm release upgrade will trigger rolling update
+  license:
+    path: <LICENSE_SERVER_PORT>@<LICENSE_SERVER_HOST>
+##NQAS Datapacks configuration for the pool, change in dataPack.languages coupled with helm release upgrade
+##will trigger rolling update
+  dataPack:
+    languages: []
+    loadNightlyUpdateVersionIfAvailable: true
+    enableDataPackLiveCheck: true
+    dataPackLivePollingIntervalSec: 600
+
+  dataStore:
+    provider: 'redis'
+    scanDataStoreOnStartup: true
+    legacyPubSub: false
+    connection:
+        host: <REDIS_SERVICE>
+        port: <REDIS_PORT>
+        db:
+        keyPrefix: nqas
+        sentinels: 
+        -  host: <REDIS_SERVICE>
+           port: <SENTINEL_PORT>
+        name: <SENTINEL_MASTER>
+        maxRetries: 5
+        maxRetryIntervalMs: 60000
+        terminateOnFailure: true
+        dataStorePassphrase: <OBFUSCATED_PASSPHRASE>
+        enablePing: true
+        pingIntervalMs: 60000
+        tls:
+          host: <TLS_HOST>
+          port: <TLS_HOST>
+          rejectUnauthorized: true
+    useSentinel: false
+
+  httpClient:
+    requestTimeout: 10000
+    followRedirect: true
+    maxRedirects: 10
+    rejectUnauthorized: false    
+    keyFile: 
+    certFile: 
+    passphrase:    
+    caCertificates:
+##CCSS URI-to-URL resolver configuration
+  uriResolver:
+    templates:
+      get: <URI_TO_GET_URL>
+      put: <URI_TO_PUT_URL>
+  tracing:
+    enable: false
+    serviceName:
+    reporter:
+        agentHost:
+        agentPort:
+        collectorEndpoint:
+        username:
+        password:
+        logSpans: false
+        flushIntervalMs:
+    sampler:
+        type:
+        param: 0
+        hostPort:
+        refreshIntervalMs:
+    throttler:
+        host:
+        port:
+        refreshIntervalMs:
+  
+##--------------------------------------------------------------------------------------------------------------------------------
+##Persistence Storage Configurations 
+##PV should support ReadOnlyMany access mode 
+persistence:
+##volumeType can be nfs, hostPath, other, existingClaim.
+  volumeType: nfs 
+##Storage property is applicable to volume type nfs and other only 
+  storage: 20Gi
+##---------------------------------------------------------------------------------------------------------------------------------
+##If volumeType is NFS. 
+##PV and PVC will be created for every pool if NFS is enabled. NFS server details needs to be configured below
+##Configured dataPack.languages should be available on the NFS mount path
+  nfs:
+##configure nfs server IP 
+    server: <NFS_SERVER_IP>
+##nfs server mount path
+    path: <NFS_MOUNT_PATH>
+##---------------------------------------------------------------------------------------------------------------------------------
+##If volumeType is hostPath.
+##hostMountPath property is required. Configured dataPack.languages should be available on the host mount path
+  hostMountPath: <HOST_PATH>
+#---------------------------------------------------------------------------------------------------------------------------------
+##If volumeType is other. Configured dataPack.languages should be available on the PV mount 
+  other:
+    storageClassName: ""
+##pvSelectors can be configured to bind PVC to a static configured  PV
+    #pvSelectors: 
+    #  pvLabel: pvLabelValue
+##---------------------------------------------------------------------------------------------------------------------------------
+##If volumeType is existingClaim. Configured dataPack.languages should be available on the PV mount 
+  existingClaim:
+
+##Alert Configurations
+alertConfigurations:
+  alertLabels:
+    alert_through: pagerduty-platform
+  failedCommands:
+    percentageThreshold: 5
+    timeRange: 1m
+  protocolFailure:
+    percentageThreshold: 5
+    timeRange: 1m
+  trainFailure:
+    percentageThreshold: 5
+    timeRange: 1m
+  initializationFailure:
+    timeInSeconds: 600
+  configurationFailure:
+    timeInSeconds: 600
+  persistentErrorFailure:
+    timeInSeconds: 600
+  licenseServerDisconnect:
+    timeThreshold: 10m
+#RedisClientConnect and Redis SubscriberConnect
+  datastoreClientConnect:
+    timeThreshold: 10m
+    avgConnectionThreshold: 0.5
+  datastoreSubscriberConnect:
+    timeThreshold: 10m
+    avgConnectionThreshold: 0.5
+  podRestart:
+    timeInterval: 10m
+    timeRange: 30m
+    avgThresholdCount: 2
+    
+##--------------------------------------------------------------------------------------------------------------------------------
+###Network Policies Configuration
+#Default policies are to DENY ALL traffic except the DNS
+#Traffic From - Another-NQAS, Prometheus, Ambassador, HAProxy, Client
+#Traffic To - Another-NQAS, PushGateway, Jaeger, Redis, CCSS, Artifactory
+networkPolicy:
+  defaultEnabled: false
+  enabled: false
+  monitoring:
+    prometheus:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    pushgateway:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    jaeger:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+  redis:
+    enabledovernamespace: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+    enabledoveripport: false
+    enabledoverport: false    
+    ipValue:
+    portValue:
+  ccss:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  artifactory:
+    enabledovernamespace: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+    enabledoverip: false
+    ipValue:
+  ambassador:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  haproxy:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}  
+  client:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}

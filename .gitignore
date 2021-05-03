@@ -1,0 +1,4 @@
+images/
+optional-images/
+helm/*.tgz
+optional-helm/*.tgz

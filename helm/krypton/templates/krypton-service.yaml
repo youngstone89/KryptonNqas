@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "krypton.fullname" . }}
+  labels:
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "krypton.fullname" . }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}
+{{- if .Values.deployment.serviceLabels }} 
+{{- toYaml .Values.deployment.serviceLabels | nindent 4 }}     
+{{- end }}   
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+spec:
+{{- if .Values.service.clusterIP }}
+  clusterIP: None
+{{- end }}
+  ports:
+{{- if eq .Values.http.enable true}}
+  - name: kr-svc-http
+    port: {{ .Values.service.httpPort }}
+    protocol: TCP
+    targetPort: krypton-http
+{{- end}}
+{{- if eq .Values.https.enable true}}
+  - name: kr-svc-https
+    port: {{ .Values.service.httpsPort }}
+    protocol: TCP
+    targetPort: krypton-https
+{{- end}}
+{{- if eq .Values.http2.enable true}}
+  - name: kr-svc-grpc
+    port: {{ .Values.service.http2Port }}
+    protocol: TCP
+    targetPort: krypton-grpc
+{{- end}}
+{{- if eq .Values.fluentd.enabled true }}
+  - name: kr-fluentd-metrics-port
+    port: 24231
+    protocol: TCP
+{{- end}}
+  selector:
+    app: {{ template "krypton.name" . }}
+    release: {{ .Release.Name }}
+  sessionAffinity: None
+  type: {{ .Values.service.type }}

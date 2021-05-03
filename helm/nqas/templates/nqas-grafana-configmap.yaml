@@ -1,0 +1,5392 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "nqas.fullname" . }}-grafana
+  annotations:
+{{ toYaml .Values.grafana.configmap.annotations | indent 4 }}   
+  labels:
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{ toYaml .Values.grafana.selectorLabels | indent 4 }}
+data:
+  {{ template "nqas.fullname" . }}-grafana-dashboard.json: |-
+        {
+          "__inputs": [
+             {
+              "name": {{ .Values.grafana.datasource.name | quote }},
+              "label": {{ .Values.grafana.datasource.label | quote }},
+              "description": {{ .Values.grafana.datasource.description | quote }},
+              "type": {{ .Values.grafana.datasource.type | quote }},
+              "pluginId": {{ .Values.grafana.datasource.pluginId | quote }},
+              "pluginName": {{ .Values.grafana.datasource.pluginName | quote }}
+             }
+          ],
+          "__requires": [
+            {
+              "type": "grafana",
+              "id": "grafana",
+              "name": "Grafana",
+              "version": "6.0.0"
+            },
+            {
+              "type": "panel",
+              "id": "graph",
+              "name": "Graph",
+              "version": "5.0.0"
+            },
+            {
+              "type": "datasource",
+              "id": "prometheus",
+              "name": "Prometheus",
+              "version": "5.0.0"
+            },
+            {
+              "type": "panel",
+              "id": "singlestat",
+              "name": "Singlestat",
+              "version": "5.0.0"
+            },
+            {
+              "type": "panel",
+              "id": "table",
+              "name": "Table",
+              "version": "5.0.0"
+            }
+          ],
+          "annotations": {
+            "list": [
+              {
+                "builtIn": 1,
+                "datasource": "-- Grafana --",
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+              }
+            ]
+          },
+          "editable": true,
+          "gnetId": null,
+          "graphTooltip": 0,
+          "id": 128,
+          "iteration": 1580804996253,
+          "links": [],
+          "panels": [
+            {
+              "content": "<h4><span style=\"color: rgb(251, 160, 38); font-family: &quot;Courier New&quot;, courier;\">Service : $Service</span></br><span style=\"color: rgb(0, 168, 95); font-size: 14px; font-family: &quot;Courier New&quot;, courier;\">Release : $Release</span><span style=\"font-size: 14px;\"><span style=\"font-family: Courier New,courier;\">\r\n      <br><span style=\"color: rgb(147, 101, 184);\">Application : $Application&nbsp;</span>\r\n      <br>\r\n    </span></span></h4>\r\n<p>\r\n  <br>\r\n</p>",
+              "id": 94,
+              "mode": "html",
+              "options": {},
+              "targets": [
+                {
+                  "expr": "",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Engine",
+              "type": "text"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorPrefix": false,
+              "colorValue": false,
+              "colors": [
+                "#C4162A",
+                "#37872D",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 6,
+                "x": 6,
+                "y": 0
+              },
+              "id": 28,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "Value",
+              "targets": [
+                {
+                  "expr": "max (kube_pod_created{namespace=~\"$Namespace\",pod=~\"$Pod\"} or kube_configmap_created{namespace=~\"$Namespace\",configmap=\"$Service\"} or kube_deployment_created{namespace=~\"$Namespace\",deployment=\"$Service\"} or kube_service_created{namespace=~\"$Namespace\",service=\"$Service\"})*1000 ",
+                  "format": "table",
+                  "instant": false,
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Last Deployment Time",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(122, 118, 115, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "format": "none",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 6,
+                "x": 12,
+                "y": 0
+              },
+              "hideTimeOverride": false,
+              "id": 101,
+              "interval": "1m",
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "pluginVersion": "6.3.5",
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "label_chart",
+              "targets": [
+                {
+                  "expr": "(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\",label_chart!=\"\"})",
+                  "format": "table",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": "2m",
+              "timeShift": null,
+              "title": "Last Chart Release",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                },
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "kube_service_label"
+                }
+              ],
+              "valueName": "avg"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "#8F3BB8",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "format": "none",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 6,
+                "x": 18,
+                "y": 0
+              },
+              "hideTimeOverride": false,
+              "id": 99,
+              "interval": "1m",
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "pluginVersion": "6.3.5",
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "100%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "label_image",
+              "targets": [
+                {
+                  "expr": "(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\",label_image!=\"\"})",
+                  "format": "table",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": "2m",
+              "timeShift": null,
+              "title": "Last Image Release",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                },
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "kube_service_label"
+                }
+              ],
+              "valueName": "avg"
+            },
+            {
+              "cacheTimeout": null,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "",
+              "gridPos": {
+                "h": 5,
+                "w": 24,
+                "x": 0,
+                "y": 3
+              },
+              "id": 103,
+              "links": [],
+              "options": {
+                "fieldOptions": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "defaults": {
+                    "mappings": [],
+                    "max": 100,
+                    "min": 0,
+                    "thresholds": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "override": {},
+                  "values": false
+                },
+                "orientation": "horizontal",
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true
+              },
+              "pluginVersion": "6.3.5",
+              "targets": [
+                {
+                  "expr": "count(kube_pod_labels{namespace=\"$Namespace\",label_app=\"{{ template "nqas.name" . }}\",pod=~\"$Pod\"})",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 3,
+                  "legendFormat": "Pods",
+                  "refId": "C"
+                },
+                {
+                  "expr": "count(kube_pod_info{namespace=\"$Namespace\",pod=~\"$Pod\"})",
+                  "instant": false,
+                  "legendFormat": "Pod Nodes",
+                  "refId": "A"
+                },
+                {
+                  "expr": "count(container_cpu_usage_seconds_total{id!=\"/\",namespace=~\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "format": "time_series",
+                  "hide": false,
+                  "instant": false,
+                  "legendFormat": "Pod Processes",
+                  "refId": "D"
+                },
+                {
+                  "expr": "count(kube_pod_container_info{namespace=\"$Namespace\",pod=~\"$Pod\"})",
+                  "format": "time_series",
+                  "hide": false,
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "Pod Containers",
+                  "refId": "B"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Resource Counts",
+              "type": "gauge"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "description": "",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 8
+              },
+              "id": 105,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": false,
+                "max": true,
+                "min": true,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pluginVersion": "6.3.5",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "avg_over_time(up{namespace=~\"$Namespace\", service=\"$Service\"} [1m] ) * 100",
+                  "legendFormat": "Pod : {{`{{pod}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Service Up",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": "100",
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "cacheTimeout": null,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 10,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+              },
+              "id": 70,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 5,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pluginVersion": "6.3.5",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by (phase) (kube_pod_status_phase{namespace=~\"$Namespace\",pod=~\"$Pod\"}) ",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{phase}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Pod Status",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "cacheTimeout": null,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 10,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+              },
+              "id": 72,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 5,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pluginVersion": "6.3.5",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(kube_pod_container_status_running{namespace=\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "legendFormat": "Running",
+                  "refId": "B"
+                },
+                {
+                  "expr": "sum(kube_pod_container_status_ready{namespace=\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "instant": false,
+                  "legendFormat": "Ready",
+                  "refId": "A"
+                },
+                {
+                  "expr": "sum(kube_pod_container_status_waiting{namespace=\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "legendFormat": "Waiting",
+                  "refId": "C"
+                },
+                {
+                  "expr": "sum(kube_pod_container_status_terminated{namespace=\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "instant": true,
+                  "legendFormat": "Terminated",
+                  "refId": "D"
+                },
+                {
+                  "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"$Namespace\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "instant": true,
+                  "legendFormat": "Restarts Total",
+                  "refId": "E"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Container Status",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 22
+              },
+              "id": 62,
+              "panels": [],
+              "title": "Engine Failures",
+              "type": "row"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 7,
+                "x": 0,
+                "y": 23
+              },
+              "id": 56,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(nqas_last_engine_initialization_failure_unixtime{namespace=\"$Namespace\",service=\"$Service\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Last Initialization Failure Time",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "max"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 8,
+                "x": 8,
+                "y": 23
+              },
+              "id": 54,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(kr_last_engine_configuration_failure_unixtime{namespace=\"$Namespace\",service=\"$Service\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Last Configuration Failure Time",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 7,
+                "x": 17,
+                "y": 23
+              },
+              "id": 58,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(kr_last_engine_persistentError_failure_unixtime{namespace=~\"$Namespace\",service=\"$Service\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "Last Persistence Error Failure Time",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 26
+              },
+              "id": 60,
+              "panels": [],
+              "title": "Resource Metrics",
+              "type": "row"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": true,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "editable": true,
+              "error": false,
+              "format": "percent",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": true,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 0,
+                "y": 27
+              },
+              "height": "180px",
+              "id": 78,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum (container_memory_working_set_bytes{namespace=\"$Namespace\",node=~\"$Node\",pod=~\"$Pod\",container=~\"$Container\"}) / sum (kube_pod_container_resource_limits_memory_bytes{namespace=\"$Namespace\",node=~\"$Node\",pod=~\"$Pod\",container=~\"$Container\"})*100",
+                  "instant": false,
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "65, 90",
+              "title": "Pod Memory usage",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": true,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "percent",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": true,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 8,
+                "y": 27
+              },
+              "height": "180px",
+              "id": 76,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum (rate (container_cpu_usage_seconds_total{namespace=~\"$Namespace\", image!=\"\", pod=~\"$Pod\", container=~\"$Container\", container!=\"POD\"}[1m])) / sum (kube_pod_container_resource_limits{namespace=~\"$Namespace\", resource=\"cpu\", pod=~\"$Pod\", container=~\"$Container\"}) * 100",
+                  "instant": false,
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "65, 90",
+              "title": "Pod CPU usage",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": true,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "percent",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": true,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 16,
+                "y": 27
+              },
+              "height": "180px",
+              "id": 80,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "(sum(kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"})  - sum(kubelet_volume_stats_available_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"})) / sum(kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"}) * 100 ",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "legendFormat": "",
+                  "metric": "",
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "65, 90",
+              "title": "Pod Volume usage",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "bytes",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 0,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 82,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "20%",
+              "prefix": "",
+              "prefixFontSize": "20%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum(container_memory_working_set_bytes{namespace=~\"$Namespace\",node=~\"$Node\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Used",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "bytes",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 4,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 84,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum (kube_pod_container_resource_limits_memory_bytes{namespace=\"$Namespace\",node=~\"$Node\",pod=~\"$Pod\",container=~\"$Container\"})",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Total",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "none",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 8,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 86,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "cores",
+              "postfixFontSize": "30%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum (rate (container_cpu_usage_seconds_total{namespace=~\"$Namespace\", image!=\"\", pod=~\"$Pod\", container=~\"$Container\", container!=\"POD\"}[1m]))",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Used",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "none",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 12,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 88,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": " cores",
+              "postfixFontSize": "30%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum (kube_pod_container_resource_limits{namespace=~\"$Namespace\", resource=\"cpu\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Total",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "bytes",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 16,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 90,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "(sum(kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"})  - sum(kubelet_volume_stats_available_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"}))",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Used",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": false,
+              "colorValue": false,
+              "colors": [
+                "rgba(50, 172, 45, 0.97)",
+                "rgba(237, 129, 40, 0.89)",
+                "rgba(245, 54, 54, 0.9)"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "editable": true,
+              "error": false,
+              "format": "bytes",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 20,
+                "y": 33
+              },
+              "height": "1px",
+              "id": 92,
+              "interval": null,
+              "isNew": true,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "sum(kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\",node=~\"$Node\"})",
+                  "interval": "10s",
+                  "intervalFactor": 1,
+                  "refId": "A",
+                  "step": 10
+                }
+              ],
+              "thresholds": "",
+              "title": "Total",
+              "type": "singlestat",
+              "valueFontSize": "50%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "current"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 2,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 36
+              },
+              "id": 46,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeat": null,
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(container) (container_memory_usage_bytes{job=\"kubelet\",namespace=~\"$Namespace\", pod=~\"$Pod\", container=~\"$Container\", container!=\"POD\"})",
+                  "format": "time_series",
+                  "instant": false,
+                  "intervalFactor": 2,
+                  "legendFormat": "Current: {{`{{container}}`}}",
+                  "refId": "A"
+                },
+                {
+                  "expr": "sum by(container) (kube_pod_container_resource_requests{job=\"kube-state-metrics\", namespace=~\"$Namespace\", resource=\"memory\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "format": "time_series",
+                  "instant": false,
+                  "intervalFactor": 2,
+                  "legendFormat": "Requested: {{`{{container}}`}}",
+                  "refId": "B"
+                },
+                {
+                  "expr": "sum by(container) (kube_pod_container_resource_limits{job=\"kube-state-metrics\", namespace=~\"$Namespace\", resource=\"memory\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "Limit: {{`{{container}}`}}",
+                  "refId": "C"
+                },
+                {
+                  "expr": "sum by(container) (container_memory_cache{job=\"kubelet\", namespace=~\"$Namespace\", pod=~\"$Pod\", container=~\"$Container\", container!=\"POD\"})",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "Cache: {{`{{container}}`}}",
+                  "refId": "D"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Memory Usage",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "bytes",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                },
+                {
+                  "format": "bytes",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 43
+              },
+              "id": 48,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeat": null,
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by (container) (irate(container_cpu_usage_seconds_total{job=\"kubelet\", namespace=~\"$Namespace\", image!=\"\", pod=~\"$Pod\", container=~\"$Container\", container!=\"POD\"}[4m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "intervalFactor": 2,
+                  "legendFormat": "Current: {{`{{container}}`}}",
+                  "refId": "A"
+                },
+                {
+                  "expr": "sum by(container) (kube_pod_container_resource_requests{job=\"kube-state-metrics\", namespace=~\"$Namespace\", resource=\"cpu\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "Requested: {{`{{container}}`}}",
+                  "refId": "B"
+                },
+                {
+                  "expr": "sum by(container) (kube_pod_container_resource_limits{job=\"kube-state-metrics\", namespace=~\"$Namespace\", resource=\"cpu\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "Limit: {{`{{container}}`}}",
+                  "refId": "C"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "CPU Usage",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "cacheTimeout": null,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "% Storage Available selecting by namespace, volume",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 50
+              },
+              "id": 68,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pluginVersion": "6.3.5",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "(kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\"}  - kubelet_volume_stats_available_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\"}) / kubelet_volume_stats_capacity_bytes{namespace=~\"$Namespace\",persistentvolumeclaim=~\"$Volume\"} * 100 ",
+                  "format": "time_series",
+                  "instant": false,
+                  "intervalFactor": 1,
+                  "legendFormat": "{{`{{instance}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Volume Usage",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": "100",
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "decimals": 2,
+              "description": "Just select pod to view per pod graph",
+              "editable": true,
+              "error": false,
+              "fill": 1,
+              "fillGradient": 0,
+              "grid": {},
+              "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 56
+              },
+              "height": "200px",
+              "id": 44,
+              "isNew": true,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "sideWidth": 200,
+                "sort": "current",
+                "sortDesc": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 2,
+              "links": [],
+              "nullPointMode": "connected",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum (rate (container_network_receive_bytes_total{pod_name=~\"^$Pod$\"}[1m]))",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "Received",
+                  "metric": "network",
+                  "refId": "A",
+                  "step": 10
+                },
+                {
+                  "expr": "- sum (rate (container_network_transmit_bytes_total{pod_name=~\"^$Pod$\"}[1m]))",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "Sent",
+                  "metric": "network",
+                  "refId": "B",
+                  "step": 10
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Network I/O pressure",
+              "tooltip": {
+                "msResolution": false,
+                "shared": true,
+                "sort": 0,
+                "value_type": "cumulative"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "Bps",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "Bps",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": false
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 64
+              },
+              "id": 50,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeat": null,
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "max by (container) (kube_pod_container_status_restarts_total{job=\"kube-state-metrics\", namespace=~\"$Namespace\", pod=~\"$Pod\", container=~\"$Container\"})",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "Restarts: {{`{{container}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Total Restarts Per Container",
+              "tooltip": {
+                "shared": false,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": 0,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "description": "1. rss stands for Resident Set Size, it is the total memory allocated for the process execution\n2. heapTotal is the total size of the allocated heap\n3. heapUsed is the actual memory used during the execution of our process\n4. external is, according to the documentation, the memory used by “C++ objects bound to JavaScript objects managed by V8”",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 71
+              },
+              "id": 107,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "abs ((node_process_memory_heap_used{namespace=~\"$Namespace\",service=~\"$Service\",pod=~\"$Pod\"}))",
+                  "instant": false,
+                  "legendFormat": "Heap Used: {{`{{pod}}`}}",
+                  "refId": "A"
+                },
+                {
+                  "expr": "abs ((node_process_memory_heap_total{namespace=~\"$Namespace\",service=~\"$Service\",pod=~\"$Pod\"}))",
+                  "instant": false,
+                  "legendFormat": "Heap Total: {{`{{pod}}`}}",
+                  "refId": "B"
+                },
+                {
+                  "expr": "abs ((node_process_memory_rss{namespace=~\"$Namespace\",service=~\"$Service\",pod=~\"$Pod\"}))",
+                  "instant": false,
+                  "legendFormat": "RSS: {{`{{pod}}`}}",
+                  "refId": "C"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Node Process Heap Usage",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "decbytes",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 78
+              },
+              "id": 109,
+              "legend": {
+                "alignAsTable": false,
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "rightSide": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "abs ((node_process_cpu_usage{namespace=~\"$Namespace\",service=~\"$Service\",pod=~\"$Pod\"}))",
+                  "format": "time_series",
+                  "instant": false,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Node Process CPU Usage",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "cacheTimeout": null,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "fill": 2,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 78
+              },
+              "id": 111,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 2,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "dataLinks": []
+              },
+              "percentage": false,
+              "pluginVersion": "6.3.5",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "abs(node_process_uptime{namespace=\"$Namespace\",service=~\"$Service\",pod=~\"$Pod\"})",
+                  "format": "time_series",
+                  "instant": false,
+                  "legendFormat": "Pod: {{`{{pod}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Node Process Up Time",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "decimals": 2,
+                  "format": "s",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 86
+              },
+              "id": 42,
+              "panels": [],
+              "title": "Engine Metrics",
+              "type": "row"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Active Jobs",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 87
+              },
+              "id": 3,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service)  (nqas_job_active_status{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_active_jobs",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Command Request Count.",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 87
+              },
+              "id": 2,
+              "interval": "",
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "rightSide": false,
+                "show": true,
+                "total": true,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service) (increase(nqas_command_request_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_requests",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Failed Command Response Count.",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 94
+              },
+              "id": 4,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "rightSide": false,
+                "show": true,
+                "total": true,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service) (increase(nqas_command_failed_response_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_failures",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Train Request Count.",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 94
+              },
+              "id": 1,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": true,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service,datapack) (increase(nqas_command_train_request_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{datapack}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_train_requests",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Train Success Count.",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 101
+              },
+              "id": 95,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": true,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service,datapack) (increase(nqas_command_train_success_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{datapack}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_train_success_total",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Train Failure Count",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 101
+              },
+              "id": 18,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": false,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": true,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service,datapack) (increase(nqas_command_train_failure_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{datapack}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_train_failures",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Train Request Forwarded",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 108
+              },
+              "id": 22,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service) (increase(nqas_command_train_request_forwarded_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_command_train_requests_forwarded",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "99 Percentile s3 Initialization duration",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 108
+              },
+              "hideTimeOverride": false,
+              "id": 97,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.99, sum(rate(nqas_s3_initialization_duration_seconds_bucket{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m])) by (le, service, datapack))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{datapack}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_99percentile_s3_initialization_duration_s",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "99 Percentile Job Duration",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 115
+              },
+              "hideTimeOverride": false,
+              "id": 24,
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": false,
+                "rightSide": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.99, sum(rate(nqas_job_duration_seconds_total_bucket{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m])) by (le, service, datapack))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{datapack}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_99percentile_job_duration_s",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "99 Percentile NQAS Job Wait Duration",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 115
+              },
+              "id": 26,
+              "interval": "",
+              "legend": {
+                "alignAsTable": true,
+                "avg": true,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.99, sum(rate(nqas_job_wait_duration_seconds_bucket{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m])) by (le, service))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_99percentile_job_wait_duration_s",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "cacheTimeout": null,
+              "columns": [],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "This metric indicates time at which the NQAS Trainer Engine last loaded the datapack.",
+              "fontSize": "100%",
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 122
+              },
+              "id": 96,
+              "links": [],
+              "options": {},
+              "pageSize": 5,
+              "scroll": false,
+              "showHeader": true,
+              "sort": {
+                "col": 0,
+                "desc": true
+              },
+              "styles": [
+                {
+                  "alias": "Pods",
+                  "dateFormat": "YYYY-MM-DD HH:mm:ss",
+                  "mappingType": 1,
+                  "pattern": "pod",
+                  "type": "string"
+                },
+                {
+                  "alias": "DataPacks",
+                  "colorMode": null,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "dateFormat": "YYYY-MM-DD HH:mm:ss",
+                  "decimals": 2,
+                  "mappingType": 1,
+                  "pattern": "datapack",
+                  "thresholds": [],
+                  "type": "string",
+                  "unit": "short"
+                },
+                {
+                  "alias": "Last Time",
+                  "colorMode": null,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "dateFormat": "YYYY-MM-DD HH:mm:ss",
+                  "decimals": 2,
+                  "mappingType": 1,
+                  "pattern": "Value",
+                  "thresholds": [],
+                  "type": "date",
+                  "unit": "short"
+                },
+                {
+                  "alias": "",
+                  "colorMode": null,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "decimals": 2,
+                  "pattern": "/.*/",
+                  "thresholds": [],
+                  "type": "hidden",
+                  "unit": "short"
+                }
+              ],
+              "targets": [
+                {
+                  "expr": "sort(max_over_time(nqas_last_engine_datapack_loaded_unixtime{namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}[5m])*1000)",
+                  "format": "table",
+                  "instant": true,
+                  "legendFormat": "",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "nqas_last_engine_datapack_loaded_unixtime",
+              "transform": "table",
+              "type": "table"
+            },
+            {
+              "columns": [
+                {
+                  "text": "Avg",
+                  "value": "avg"
+                },
+                {
+                  "text": "Max",
+                  "value": "max"
+                },
+                {
+                  "text": "Current",
+                  "value": "current"
+                },
+                {
+                  "text": "Total",
+                  "value": "total"
+                }
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "Error Table",
+              "fontSize": "100%",
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 122
+              },
+              "id": 52,
+              "links": [],
+              "options": {},
+              "pageSize": null,
+              "scroll": true,
+              "showHeader": true,
+              "sort": {
+                "col": 1,
+                "desc": true
+              },
+              "styles": [
+                {
+                  "alias": "Time",
+                  "dateFormat": "YYYY-MM-DD HH:mm:ss",
+                  "pattern": "Time",
+                  "type": "date"
+                },
+                {
+                  "alias": "",
+                  "colorMode": null,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "decimals": 2,
+                  "pattern": "/.*/",
+                  "thresholds": [],
+                  "type": "number",
+                  "unit": "short"
+                }
+              ],
+              "targets": [
+                {
+                  "expr": "sum by(service) (increase(nqas_command_failed_response_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "nqas_command_failuers",
+                  "refId": "E"
+                },
+                {
+                  "expr": "sum by(service) (increase(nqas_command_train_failure_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "nqas_command_train_failures",
+                  "refId": "F"
+                },
+                {
+                  "expr": "sum by(service) (increase(nqas_command_protocol_failure_total{namespace=~\"$Namespace\",service=\"$Service\", pod=~\"$Pod\"}[1m]))",
+                  "format": "time_series",
+                  "interval": "1m",
+                  "intervalFactor": 2,
+                  "legendFormat": "nqas_command_protocol_failures",
+                  "refId": "A"
+                }
+              ],
+              "timeFrom": null,
+              "title": "Error Table",
+              "transform": "timeseries_aggregations",
+              "type": "table"
+            },
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 129
+              },
+              "id": 114,
+              "panels": [],
+              "title": "Redis Metrics",
+              "type": "row"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "client is connected to Redis ",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 130
+              },
+              "id": 112,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(pod) (nqas_datastore_client_connection_status{namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "instant": false,
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_client_connection_status",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it counts the number of connections for Redis Client (is a counter increased by one at every connect event)",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 130
+              },
+              "id": 115,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(pod)  (nqas_datastore_client_connection_total{namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_client_connection_total",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it counts the number of close events for Redis Client",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 137
+              },
+              "id": 116,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(pod)  (nqas_datastore_client_disconnection_total {namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_client_disconnection_total ",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it saves the last time in which there was an issue (error event received on RedisClient)",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 6,
+                "x": 12,
+                "y": 137
+              },
+              "id": 118,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(last_datastore_client_error_unixtime{namespace=\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "last_datastore_client_error_unixtime",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "max"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it is a metric pushed to the gateway and it saves the last time Redis answered correctly to the ping mechanism (so it is not an error, it is the last time it worked correctly)",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 6,
+                "x": 18,
+                "y": 137
+              },
+              "id": 121,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(last_datastore_client_ping_answered_unixtime{namespace=\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "last_datastore_client_ping_answered_unixtime",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "max"
+            },
+            {
+              "cacheTimeout": null,
+              "colorBackground": true,
+              "colorValue": false,
+              "colors": [
+                "#299c46",
+                "rgba(237, 129, 40, 0.89)",
+                "#d44a3a"
+              ],
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it saves the last time in which there was an issue (error event received on Redis Subscriber)",
+              "format": "dateTimeAsIso",
+              "gauge": {
+                "maxValue": 100,
+                "minValue": 0,
+                "show": false,
+                "thresholdLabels": false,
+                "thresholdMarkers": true
+              },
+              "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 12,
+                "y": 140
+              },
+              "id": 122,
+              "interval": null,
+              "links": [],
+              "mappingType": 1,
+              "mappingTypes": [
+                {
+                  "name": "value to text",
+                  "value": 1
+                },
+                {
+                  "name": "range to text",
+                  "value": 2
+                }
+              ],
+              "maxDataPoints": 100,
+              "nullPointMode": "connected",
+              "nullText": null,
+              "options": {},
+              "postfix": "",
+              "postfixFontSize": "50%",
+              "prefix": "",
+              "prefixFontSize": "50%",
+              "rangeMaps": [
+                {
+                  "from": "null",
+                  "text": "N/A",
+                  "to": "null"
+                }
+              ],
+              "sparkline": {
+                "fillColor": "rgba(31, 118, 189, 0.18)",
+                "full": false,
+                "lineColor": "rgb(31, 120, 193)",
+                "show": false,
+                "ymax": null,
+                "ymin": null
+              },
+              "tableColumn": "",
+              "targets": [
+                {
+                  "expr": "max(last_datastore_subscriber_error_unixtime{namespace=\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"})*1000",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": "",
+              "timeFrom": null,
+              "timeShift": null,
+              "title": "last_datastore_subscriber_error_unixtime",
+              "type": "singlestat",
+              "valueFontSize": "80%",
+              "valueMaps": [
+                {
+                  "op": "=",
+                  "text": "N/A",
+                  "value": "null"
+                }
+              ],
+              "valueName": "max"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "1 when the subscriber  is connected to Redis otherwise",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 144
+              },
+              "id": 119,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(pod)  (nqas_datastore_subscriber_connection_status{namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_subscriber_connection_status",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it counts the number of connections for Redis Subscriber  (is a counter increased by one at every connect event)",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 12,
+                "y": 144
+              },
+              "id": 120,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": true,
+                "max": true,
+                "min": true,
+                "show": true,
+                "total": false,
+                "values": true
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(pod)  (nqas_datastore_subscriber_connection_total{namespace=~\"$Namespace\",service=\"$Service\",pod=~\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{pod}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_subscriber_connection_total",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": "{{ .Values.grafana.datasource.name }}",
+              "description": "it counts the number of close events for Redis subscriber",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 7,
+                "w": 12,
+                "x": 0,
+                "y": 151
+              },
+              "id": 123,
+              "legend": {
+                "alignAsTable": true,
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null as zero",
+              "options": {
+                "dataLinks": []
+              },
+              "paceLength": 10,
+              "percentage": false,
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum by(service)  (nqas_datastore_subscriber_disconnection_total{namespace=~\"$Namespace\",service=\"$Service\",pod=\"$Pod\"}) ",
+                  "format": "time_series",
+                  "intervalFactor": 2,
+                  "legendFormat": "{{`{{service}}`}}",
+                  "refId": "A",
+                  "step": 4
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "nqas_datastore_subscriber_disconnection_total",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "label": null,
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "collapsed": true,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 158
+              },
+              "id": 40,
+              "panels": [
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorValue": false,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "Current number of queued requests on Haproxy.",
+                  "format": "none",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 0,
+                    "y": 88
+                  },
+                  "id": 5,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "sum by(service) (haproxy_backend_current_queue{namespace=~\"$Namespace\",service=\"commons-global-exporter\"})",
+                      "format": "time_series",
+                      "instant": false,
+                      "intervalFactor": 2,
+                      "legendFormat": "",
+                      "refId": "A",
+                      "step": 30
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "haproxy_backend_current_queue",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "avg"
+                },
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorPostfix": false,
+                  "colorPrefix": false,
+                  "colorValue": false,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "MAX OF \"Current number of queued requests\" for haproxy backends.",
+                  "format": "none",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 6,
+                    "y": 88
+                  },
+                  "id": 15,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "max by (service) (haproxy_backend_current_queue{namespace=~\"$Namespace\",service=\"commons-global-exporter\"}) ",
+                      "format": "time_series",
+                      "intervalFactor": 2,
+                      "legendFormat": "",
+                      "refId": "A",
+                      "step": 30
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "MAX haproxy_backend_current_queue",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "max"
+                },
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorValue": false,
+                  "colors": [
+                    "#299c46",
+                    "rgba(237, 129, 40, 0.89)",
+                    "#d44a3a"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "MAX  OF \"Avg. total time for last 1024 successful connections\" for haproxy backends.",
+                  "format": "s",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 12,
+                    "y": 88
+                  },
+                  "id": 8,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "max by(service) (haproxy_backend_http_total_time_average_seconds{namespace=~\"$Namespace\",service=\"commons-global-exporter\"})",
+                      "format": "time_series",
+                      "intervalFactor": 1,
+                      "refId": "A"
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "MAX haproxy_backend_http_total_time_average_seconds",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "max"
+                },
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorValue": false,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "MAX OF \"Avg. queue time for last 1024 successful connections.\" for haproxy backends.",
+                  "format": "s",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 18,
+                    "y": 88
+                  },
+                  "id": 16,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "max by (service) (haproxy_backend_http_queue_time_average_seconds{namespace=~\"$Namespace\",service=\"commons-global-exporter\"})",
+                      "format": "time_series",
+                      "intervalFactor": 2,
+                      "refId": "A",
+                      "step": 30
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "MAX haproxy_backend_http_queue_time_average_seconds",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "max"
+                },
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorValue": false,
+                  "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "Avg. queue time for last 1024 successful connections for haproxy backends.",
+                  "format": "s",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 0,
+                    "y": 95
+                  },
+                  "id": 6,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "avg by (service) (haproxy_backend_http_queue_time_average_seconds{namespace=~\"$Namespace\",service=\"commons-global-exporter\"})",
+                      "format": "time_series",
+                      "intervalFactor": 2,
+                      "legendFormat": "",
+                      "refId": "A",
+                      "step": 30
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "haproxy_backend_http_queue_time_average_seconds",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "avg"
+                },
+                {
+                  "cacheTimeout": null,
+                  "colorBackground": false,
+                  "colorValue": false,
+                  "colors": [
+                    "#299c46",
+                    "rgba(237, 129, 40, 0.89)",
+                    "#d44a3a"
+                  ],
+                  "datasource": "{{ .Values.grafana.datasource.name }}",
+                  "description": "Avg. total time for last 1024 successful connections for haroxy backends.",
+                  "format": "s",
+                  "gauge": {
+                    "maxValue": 100,
+                    "minValue": 0,
+                    "show": false,
+                    "thresholdLabels": false,
+                    "thresholdMarkers": true
+                  },
+                  "gridPos": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 6,
+                    "y": 95
+                  },
+                  "id": 10,
+                  "interval": null,
+                  "links": [],
+                  "mappingType": 1,
+                  "mappingTypes": [
+                    {
+                      "name": "value to text",
+                      "value": 1
+                    },
+                    {
+                      "name": "range to text",
+                      "value": 2
+                    }
+                  ],
+                  "maxDataPoints": 100,
+                  "nullPointMode": "connected",
+                  "nullText": null,
+                  "options": {},
+                  "postfix": "",
+                  "postfixFontSize": "50%",
+                  "prefix": "",
+                  "prefixFontSize": "50%",
+                  "rangeMaps": [
+                    {
+                      "from": "null",
+                      "text": "N/A",
+                      "to": "null"
+                    }
+                  ],
+                  "sparkline": {
+                    "fillColor": "rgba(31, 118, 189, 0.18)",
+                    "full": false,
+                    "lineColor": "rgb(31, 120, 193)",
+                    "show": false
+                  },
+                  "tableColumn": "",
+                  "targets": [
+                    {
+                      "expr": "avg by(service) (haproxy_backend_http_total_time_average_seconds{namespace=~\"$Namespace\",service=\"commons-global-exporter\"}) ",
+                      "format": "time_series",
+                      "intervalFactor": 1,
+                      "legendFormat": "",
+                      "refId": "A"
+                    }
+                  ],
+                  "thresholds": "",
+                  "title": "haproxy_backend_http_total_time_average_seconds",
+                  "type": "singlestat",
+                  "valueFontSize": "80%",
+                  "valueMaps": [
+                    {
+                      "op": "=",
+                      "text": "N/A",
+                      "value": "null"
+                    }
+                  ],
+                  "valueName": "avg"
+                }
+              ],
+              "title": "HAProxy Metrics",
+              "type": "row"
+            }
+          ],
+          "refresh": false,
+          "schemaVersion": 19,
+          "style": "dark",
+          "tags": [],
+          "templating": {
+            "list": [
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{label_app=\"{{ template "nqas.name" . }}\",namespace=\"$Namespace\"},label_service)",
+                "hide": 0,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "Service",
+                "options": [],
+                "query": "label_values(kube_service_labels{label_app=\"{{ template "nqas.name" . }}\",namespace=\"$Namespace\"},label_service)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{label_app=\"{{ template "nqas.name" . }}\"}, namespace)",
+                "hide": 0,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "Namespace",
+                "options": [],
+                "query": "label_values(kube_service_labels{label_app=\"{{ template "nqas.name" . }}\"}, namespace)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                  "text": "All",
+                  "value": "$__all"
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_pod_labels{namespace=\"$Namespace\",label_app=\"{{ template "nqas.name" . }}\",pod=~\"$Service.*\"}, pod)",
+                "hide": 0,
+                "includeAll": true,
+                "label": null,
+                "multi": false,
+                "name": "Pod",
+                "options": [],
+                "query": "label_values(kube_pod_labels{namespace=\"$Namespace\",label_app=\"{{ template "nqas.name" . }}\",pod=~\"$Service.*\"}, pod)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                  "text": "All",
+                  "value": "$__all"
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_pod_info{namespace=\"$Namespace\",pod=~\"$Pod\"} ,node)",
+                "hide": 0,
+                "includeAll": true,
+                "label": "Pod_Node",
+                "multi": false,
+                "name": "Node",
+                "options": [],
+                "query": "label_values(kube_pod_info{namespace=\"$Namespace\",pod=~\"$Pod\"} ,node)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                  "text": "All",
+                  "value": "$__all"
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_pod_container_info{namespace=\"$Namespace\",pod=~\"$Pod\"}, container)",
+                "hide": 0,
+                "includeAll": true,
+                "label": "Pod_Container",
+                "multi": false,
+                "name": "Container",
+                "options": [],
+                "query": "label_values(kube_pod_container_info{namespace=\"$Namespace\",pod=~\"$Pod\"}, container)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                  "text": "All",
+                  "value": "$__all"
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_pod_spec_volumes_persistentvolumeclaims_info{namespace=~\"$Namespace\",pod=~\"$Pod\"}, persistentvolumeclaim)",
+                "hide": 0,
+                "includeAll": true,
+                "label": "Pod_Volume",
+                "multi": false,
+                "name": "Volume",
+                "options": [],
+                "query": "label_values(kube_pod_spec_volumes_persistentvolumeclaims_info{namespace=~\"$Namespace\",pod=~\"$Pod\"}, persistentvolumeclaim)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_chart)",
+                "hide": 2,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "ChartVersion",
+                "options": [],
+                "query": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_chart)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_image)",
+                "hide": 2,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "ImageVersion",
+                "options": [],
+                "query": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_image)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_app)",
+                "hide": 2,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "Application",
+                "options": [],
+                "query": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_app)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "allValue": null,
+                "current": {
+                },
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "definition": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_release)",
+                "hide": 2,
+                "includeAll": false,
+                "label": null,
+                "multi": false,
+                "name": "Release",
+                "options": [],
+                "query": "label_values(kube_service_labels{namespace=~\"$Namespace\",service=\"$Service\"}, label_release)",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
+              },
+              {
+                "datasource": "{{ .Values.grafana.datasource.name }}",
+                "filters": [],
+                "hide": 0,
+                "label": "",
+                "name": "Filters",
+                "skipUrlSync": false,
+                "type": "adhoc"
+              }
+            ]
+          },
+          "time": {
+            "from": "now-15m",
+            "to": "now"
+          },
+          "timepicker": {
+            "refresh_intervals": [
+              "5s",
+              "10s",
+              "30s",
+              "1m",
+              "5m",
+              "15m",
+              "30m",
+              "1h",
+              "2h",
+              "1d"
+            ],
+            "time_options": [
+              "5m",
+              "15m",
+              "1h",
+              "6h",
+              "12h",
+              "24h",
+              "2d",
+              "7d",
+              "30d"
+            ]
+          },
+          "timezone": "",
+          "title": "{{ template "nqas.fullname" . }}",
+          "uid": "{{ template "nqas.fullname" . }}",
+          "version": 18
+        }

@@ -1,0 +1,35 @@
+{{- if eq .Values.persistence.volumeType "nfs" "other"}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ template "krypton.fullname" . }}
+  labels:
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  accessModes:
+    - ReadOnlyMany
+{{- if eq .Values.persistence.volumeType "other"}}
+  storageClassName: {{ .Values.persistence.other.storageClassName }}
+{{- else}}
+  storageClassName: ""
+{{- end}}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.storage }}
+{{- if eq .Values.persistence.volumeType "nfs"}}
+  selector:
+    matchLabels:
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+{{- end}}
+{{- if eq .Values.persistence.volumeType "other"}}
+{{- if .Values.persistence.other.pvSelectors}}
+  selector:
+    matchLabels:
+{{ toYaml .Values.persistence.other.pvSelectors | indent 6 }}
+{{- end}}
+{{- end}}
+{{- end}}

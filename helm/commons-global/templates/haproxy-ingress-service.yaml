@@ -1,0 +1,58 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "commons-global.fullname" . }}-haproxy
+  labels:
+    app: {{ template "commons-global.name" . }}-haproxy
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+{{ toYaml .Values.haproxyIngress.service.annotations | indent 4 }}
+spec:
+  ports:
+  - port: 80
+    name: http-port
+    protocol: TCP
+{{- if .Values.haproxyIngress.service.httpTargetPort }}
+    targetPort: {{ .Values.haproxyIngress.service.httpTargetPort }}
+{{- else }}
+    targetPort: 8080
+{{- end}}
+{{- if eq .Values.haproxyIngress.service.type "NodePort" }}
+    nodePort: {{ .Values.haproxyIngress.service.httpNodePort }}
+{{- end}}
+  - port: 443
+    name: https-port
+    protocol: TCP
+{{- if .Values.haproxyIngress.service.httpsTargetPort }}
+    targetPort: {{ .Values.haproxyIngress.service.httpsTargetPort }}
+{{- else }}
+    targetPort: 8443
+{{- end}}
+{{- if eq .Values.haproxyIngress.service.type "NodePort" }}
+    nodePort: {{ .Values.haproxyIngress.service.httpsNodePort }}
+{{- end}}
+  - port: 10253
+    name: health-port
+    protocol: TCP
+{{- if .Values.haproxyIngress.service.healthCheckTargetPort }}
+    targetPort: {{ .Values.haproxyIngress.service.healthCheckTargetPort }}
+{{- else }}
+    targetPort: 10253
+{{- end}}
+{{- if eq .Values.haproxyIngress.service.type "NodePort" }}
+    nodePort: {{ .Values.haproxyIngress.service.healthCheckNodePort }}
+{{- end}}
+  selector:
+    app: {{ template "commons-global.name" . }}-haproxy
+    release: {{ .Release.Name }}
+{{- if eq .Values.haproxyIngress.service.type "LoadBalancer" }}
+{{- if .Values.haproxyIngress.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.haproxyIngress.service.loadBalancerIP }}
+{{- end }}
+{{- end }}
+  type: {{ .Values.haproxyIngress.service.type }}
+{{- end}}

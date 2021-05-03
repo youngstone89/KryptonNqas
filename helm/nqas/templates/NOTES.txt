@@ -1,0 +1,4 @@
+NQAS pool created with helm release name {{ .Release.Name }} 
+
+Release {{ .Release.Name }} manifests can be viewed using below command
+helm get {{ .Release.Name }}

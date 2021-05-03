@@ -1,0 +1,42 @@
+{{- if eq .Values.sharedMemoryCleaner.enabled true}}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "commons-global.fullname" . }}-shmc
+  labels:
+    app: {{ template "commons-global.name" . }}-shmc
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "commons-global.name" . }}-shmc
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "commons-global.name" . }}-shmc
+        release: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+{{ toYaml .Values.sharedMemoryCleaner.imagePullSecrets | indent 8 }}
+      hostIPC: true
+      hostPID: true
+      containers:
+      - name: mrec-shared-memory-cleaner
+        image: {{ .Values.sharedMemoryCleaner.image.repository }}:{{ .Values.sharedMemoryCleaner.image.tag }}
+        env:
+        - name: INTERVAL
+          value: {{ .Values.sharedMemoryCleaner.interval | quote }}
+        imagePullPolicy: {{ .Values.sharedMemoryCleaner.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.sharedMemoryCleaner.resources | indent 10 }}
+      nodeSelector:
+{{ toYaml .Values.sharedMemoryCleaner.nodeSelector | indent 8 }}
+      affinity:
+{{ toYaml .Values.sharedMemoryCleaner.affinity | indent 8 }}
+      tolerations:
+{{ toYaml .Values.sharedMemoryCleaner.tolerations | indent 8 }} 
+{{- end}}

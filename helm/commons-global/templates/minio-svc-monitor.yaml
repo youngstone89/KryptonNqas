@@ -1,0 +1,30 @@
+{{- if eq .Values.minio.enabled true}}
+{{- if eq .Values.minio.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "minio.fullname" . }}
+  labels:
+{{ toYaml .Values.minio.prometheusOperator.serviceMonitor.labels | indent 4 }}
+    alerts: minio
+    app: {{ template "minio.name" . }}
+    chart: {{ template "minio.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.minio.prometheusOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "minio.name" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+  - port: service
+    path: /minio/prometheus/metrics
+{{ toYaml .Values.minio.prometheusOperator.serviceMonitor.config | indent 4 }}
+{{- end}}
+{{- end}}

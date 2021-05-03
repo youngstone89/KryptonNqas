@@ -1,0 +1,7 @@
+apiVersion: v1
+appVersion: 2.2.2-gl557200
+description: A Helm chart for krypton router
+maintainers:
+- name: nuance-coretech
+name: krypton-router
+version: 2.2.2-gl557200

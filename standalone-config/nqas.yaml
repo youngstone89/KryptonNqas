@@ -1,0 +1,115 @@
+# do not remove this line: it is needed to skip possibly added UTF8 BOM.
+engineUUID: NQAS 
+shutdownTimeoutMs: 10000
+jobExpiration: 3600 
+enableInfoEvents: false
+enableCallLogEvents: false
+enableRuntimeConfig: false
+binaryWordsetMaxItemCount: 1000
+defaultHostName:
+defaultNetworkInterface:
+    name: 
+    family: 'IPv4'
+
+http:
+    port: 8082
+    host:
+	 
+https:
+    port: 8084
+    host:	
+    keyFile: './keys/server.key'
+    certFile: './keys/server.crt'
+    passphrase:        
+    requestCert: false
+    rejectUnauthorized: true
+    caCertificates:
+	
+httpClient:
+    requestTimeout: 10000
+    followRedirect: true
+    maxRedirects: 10
+    rejectUnauthorized: false    
+    keyFile: 
+    certFile: 
+    passphrase:    
+    caCertificates:    
+    
+protocol:
+    defaultVersion: '1.0'
+
+log:
+    level: 'info'
+    audioLogLevel:
+    maxSize: 5242880
+    maxFiles: 5
+    enableConsole: true
+    colorizeConsole: true
+    enableFile: true
+    timestamp: true
+    # the following parameters are reserved for Nuance use only.
+    addonsLevel: 'status'
+    clampS3Logging: true
+
+dataStore:
+    provider: 	
+    scanDataStoreOnStartup: true
+    legacyPubSub: false
+    connection:
+        host: 'localhost'
+        port: 6379
+        db:		
+        keyPrefix: nqas
+        sentinels:
+        name:
+        maxRetries: 5
+        maxRetryIntervalMs: 60000
+        terminateOnFailure: true
+        dataStorePassphrase:
+        enablePing: true
+        pingIntervalMs: 60000
+        tls:
+          host:
+          port:
+          rejectUnauthorized: true    
+          keyFile: 
+          certFile: 
+          tlsPassphrase:    
+          caCertificates:
+    useSentinel: false
+	
+dataPack:
+    languages: []
+    s3Config: 'ndp-s3config-4.10.0'
+    loadNightlyUpdateVersionIfAvailable: true    
+    enableDataPackLiveCheck: true
+    dataPackLivePollingIntervalSec: 600
+
+license:
+    path: '.'
+
+uriResolver:
+    templates:
+        get:
+        put:
+
+tracing:
+    enable: false
+    serviceName:
+    reporter:
+        agentHost:
+        agentPort:
+        collectorEndpoint:
+        username:
+        password:
+        logSpans: false
+        flushIntervalMs:
+    sampler:
+        type:
+        param: 0
+        hostPort:
+        refreshIntervalMs:
+    throttler:
+        host:
+        port:
+        refreshIntervalMs:

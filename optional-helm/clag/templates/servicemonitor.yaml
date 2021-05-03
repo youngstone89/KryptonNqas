@@ -1,0 +1,31 @@
+{{- if eq .Values.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "clag.fullname" . }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{ toYaml .Values.prometheusOperator.serviceMonitor.labels | indent 4 }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "clag.name" . }}
+      chart: {{ template "clag.chart" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+{{- if .Values.http.enabled }}
+  - port: http
+{{- else }}
+  - port: https
+{{- end}}  
+{{ toYaml .Values.prometheusOperator.serviceMonitor.config | indent 4 }}
+{{- end}}

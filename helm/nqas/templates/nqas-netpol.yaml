@@ -1,0 +1,123 @@
+{{- if eq .Values.networkPolicy.enabled true}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "nqas.fullname" . }}-netpol
+  annotations:
+{{ toYaml .Values.networkPolicies.annotations | indent 4 }}
+  labels:
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "nqas.name" . }}
+      release: {{ .Release.Name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ template "nqas.name" . }}
+    ports:
+     - port: {{ .Values.http.port }}
+       protocol: TCP
+     - port: {{ .Values.https.port }}
+       protocol: TCP          
+{{- if eq .Values.networkPolicy.monitoring.prometheus.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.prometheus.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.prometheus.podSelector | indent 8 }}
+{{- end }}       
+{{- if eq .Values.networkPolicy.ambassador.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.ambassador.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.ambassador.podSelector | indent 8 }}
+{{- end }}   
+{{- if eq .Values.networkPolicy.haproxy.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.haproxy.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.haproxy.podSelector | indent 8 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.client.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.client.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.client.podSelector | indent 8 }}
+{{- end }}
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: {{ template "nqas.name" . }}
+    ports:
+     - port: {{ .Values.http.port }}
+       protocol: TCP
+     - port: {{ .Values.https.port }}
+       protocol: TCP     
+{{- if eq .Values.networkPolicy.monitoring.pushgateway.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.pushgateway.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.pushgateway.podSelector | indent 8 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.monitoring.jaeger.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.jaeger.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.jaeger.podSelector | indent 8 }}
+{{- end }}       
+{{- if eq .Values.networkPolicy.redis.enabledovernamespace true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.redis.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.redis.podSelector | indent 8 }}
+{{- end }}         
+{{- if eq .Values.networkPolicy.redis.enabledoveripport true}}
+  - to:
+    - ipBlock:
+        cidr: {{ .Values.networkPolicy.redis.ipValue }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.networkPolicy.redis.portValue }}
+{{- end }}
+{{- if eq .Values.networkPolicy.redis.enabledoverport true}}
+  - to:
+    ports:
+    - protocol: TCP
+      port: {{ .Values.networkPolicy.redis.portValue }}
+{{- end }}
+{{- if eq .Values.networkPolicy.ccss.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.ccss.namespaceSelector | indent 8 }}
+      podSelector:    
+{{ toYaml .Values.networkPolicy.ccss.podSelector | indent 8 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.artifactory.enabledovernamespace true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.artifactory.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.artifactory.podSelector | indent 8 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.artifactory.enabledoverip true}}
+  - to:
+    - ipBlock:
+        cidr: {{ .Values.networkPolicy.artifactory.ipValue }}
+{{- end }}
+{{- end }}

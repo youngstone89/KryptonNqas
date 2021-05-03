@@ -1,0 +1,3 @@
+# do not remove this line: it is needed to skip possibly added UTF8 BOM.
+log:
+    level: 'status'

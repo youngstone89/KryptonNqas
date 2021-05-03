@@ -1,0 +1,434 @@
+# This is a configuration file for commons global helm chart 
+commons:
+  enabled: false
+  
+  # Common Grafana Configuration
+  grafana:
+    configmap:
+      annotations: {}
+    selectorLabels: 
+      grafana_dashboard: "grafana_dashboard"
+    datasource: 
+      name: "Prometheus"
+      label: "Prometheus"
+      description: ""
+      type: "datasource"
+      pluginId: "prometheus"
+      pluginName: "Prometheus"
+  
+  # Common NetworkPolicy Configuration    
+  networkPolicy:
+      defaultPolicies: false
+      annotations: {}
+  
+  # Common Prometheus Configuration
+  prometheus:
+    alerts:
+      selectorLabels: {}  
+
+  # Common PrometheusOperator Configuration    
+  prometheusOperator:
+    enable: false
+    namespace: monitoring
+    serviceMonitor:
+      labels:
+        team: coretech
+      config:
+        interval: 10s
+        #scheme: https
+        #tlsConfig:
+        #  caFile: 
+        #  certFile:
+        #  insecureSkipVerify: true
+        #  keyFile:
+    prometheusRulesLabels:
+      prometheus: prometheus
+      role: alert-rules   
+  
+  # Common AlertRules Configuration    
+  alertConfigurations:
+    configmap:
+      annotations: {}
+    alertLabels:
+      alert_through: pagerduty-platform     
+    ambassador:
+      podRestart:
+        timeInterval: 10m
+        timeRange: 30m
+        avgThresholdCount: 2
+  
+  #Enable/Disable Common Charts  
+  ambassador:
+    grafana:
+      enabled: false  
+    alertRules:
+      enabled: false         
+    networkPolicy: 
+      enabled: false        
+      ingress: []
+      egress: []      
+  krypton:
+    grafana:
+      enabled: false
+    networkPolicy: 
+      enabled: false
+      ingress: []     
+      egress: []  
+  kryptonRouter:
+    networkPolicy: 
+      enabled: false      
+      ingress: []     
+      egress: [] 
+  nqas:
+    networkPolicy: 
+      enabled: false   
+      ingress: []     
+      egress: []    
+  minio:
+    grafana:
+      enabled: false  
+    networkPolicy: 
+      enabled: false   
+      ingress: []     
+      egress: []      
+
+haproxyIngress:
+  enabled: false
+  image:
+    repository: quay.io/jcmoraisjr/haproxy-ingress
+    tag: v0.7.1
+    pullPolicy: IfNotPresent
+  ingressClass: nuance-coretech
+  imagePullSecrets: []
+  #  - name: secret1
+##resources setting for haproxy ingress container  
+  resources: {}
+##affinity for haproxy ingress pod
+  affinity: {}
+##nodeselector for haproxy Ingress pod
+  nodeSelector: {}
+##Syslog endpoint config for haproxy logs
+  syslogEndpoint: 127.0.0.1:5140
+#--------------------------------------------------------------------------------------------------------------------  
+  securityContext: {}
+  #  runAsUser: 65534
+  #  runAsGroup: 65534
+#--------------------------------------------------------------------------------------------------------------------  
+##haproxyIngress service node port configuration 
+  service:
+    type: NodePort
+    httpNodePort: 32340
+    httpsNodePort: 32373
+    healthCheckNodePort: 32344
+  # httpTargetPort: 8080
+  # httpsTargetPort: 8443
+  # healthCheckTargetPort: 10253
+  # loadBalancerIP: 0.0.0.0
+  # annotations:
+  #   someAnnotation: annotationValue
+#-------------------------------------------------------------------------------------------------------------------- 
+  grafana:
+    selectorLabels: 
+      grafana_dashboard: "grafana_dashboard"
+    datasource: 
+      name: "Prometheus"
+      label: "Prometheus"
+      description: ""
+      type: "datasource"
+      pluginId: "prometheus"
+      pluginName: "Prometheus"
+#-------------------------------------------------------------------------------------------------------------------- 
+  prometheusMetricsExporterService:
+    type: ClusterIP
+    port: 9101
+    annotations: {}
+     # prometheus.io/scrape: 'true'
+     # prometheus.io/port: '9101'
+#-------------------------------------------------------------------------------------------------------------------- 
+##Prometheus monitoring configurations
+  prometheusOperator:
+    enabled: false
+    namespace: monitoring
+    serviceMonitor:
+      labels:
+        team: coretech
+      config:
+        interval: 10s
+    prometheusRulesLabels:
+      prometheus: prometheus
+      role: alert-rules
+#--------------------------------------------------------------------------------------------------------------------
+  alertConfigurations:
+    invalidRequestsDefaultBackend:
+      timeRange: 10m
+      countThreshold: 0
+#--------------------------------------------------------------------------------------------------------------------
+  rbac:
+    enabled: true
+    namespaceRestricted: false
+#--------------------------------------------------------------------------------------------------------------------
+ ##Haproxy ingress side car configurations 
+  sidecar:
+    haproxyMetricsExporter:
+      resources: {}
+      image: 
+        repository: quay.io/prometheus/haproxy-exporter
+        tag: v0.9.0
+        pullPolicy: IfNotPresent
+##Fluentbit sidecar used for Haproxy access logs. By default access logs are disabled 
+    fluentBitSideCar:
+      enabled: false  
+      resources: {}
+      image: 
+        repository: fluent/fluent-bit
+        tag: "1.0"
+        pullPolicy: IfNotPresent
+      service: |-
+          [SERVICE]
+              storage.backlog.mem_limit 30M
+              Parsers_File parsers.conf
+              HTTP_Listen  0.0.0.0
+              HTTP_Port    7700
+              HTTP_Server  true
+      input: |-
+          [INPUT]
+              Name     syslog
+              Parser   syslog-rfc5424
+              Listen   0.0.0.0
+              Port     5140
+              Mode     udp
+              Tag      haproxy_logs
+      filter: |-
+          [FILTER]
+              Name record_modifier
+              Record POD_NAME                ${MY_POD_NAME}
+              Record POD_NAMESPACE           ${MY_POD_NAMESPACE}
+              Record NODE_NAME               ${MY_NODE_NAME}
+              Record POD_IP                  ${MY_POD_IP}
+              Record HELM_RELEASE_NAME       ${HELM_RELEASE_NAME}
+              Record SERVICE                 ${SERVICE}
+              Record IMAGE                   ${IMAGE}
+              Match                          haproxy_logs
+      output: |-
+          [OUTPUT]
+              name          stdout
+              match         haproxy_logs
+          #[OUTPUT]
+          #    name          splunk
+          #    host          <SPLUNK_HOST>
+          #    port          <SPLUNK_PORT>
+          #    tls           off
+          #    tls.verify    off
+          #    splunk_token  <SPLUNK_TOKEN>
+          #    match         haproxy_logs
+          #[OUTPUT]
+          #    name          es
+          #    host          <ELASTICSEARCH_HOST>
+          #    port          <ELASTICSEARCH_PORT>
+          #    tls           off
+          #    tls.verify    off
+          #    index         krypton
+          #    match         haproxy_logs
+
+#-------------------------------------------------------------------------------------------------------------------- 
+#-------------------------------------------------------------------------------------------------------------------- 
+##defaultBackend is used when request to unknown path is sent to haproxy ingress
+defaultBackend:
+  resources: {}
+  affinity: {}
+  nodeSelector: {}
+  imagePullSecrets: []
+  #  - name: secret1
+  image: 
+    repository: gcr.io/google-containers/defaultbackend
+    tag: "1.4"
+    pullPolicy: IfNotPresent
+#-------------------------------------------------------------------------------------------------------------------- 
+#-------------------------------------------------------------------------------------------------------------------- 
+sharedMemoryCleaner:
+  enabled: false
+##interval in seconds
+  interval: 1800
+  image: 
+    repository: <SHARED_MEMORY_CLEANER_REPOSITORY>
+    tag: "2.0.0-gl559016"
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  #  - name: secret1
+  resources: {}
+  tolerations: []
+  affinity: {}
+  nodeSelector: {}
+#-------------------------------------------------------------------------------------------------------------------- 
+#-------------------------------------------------------------------------------------------------------------------- 
+##Minio server configurations
+minio:
+  enabled: false
+##mode can be distributed or standalone
+  mode: standalone
+##replicas is valid only for distributed mode. Mimimum replica count should be 4 and maximum 16
+  replicas: 4
+  accessKey: "AKIAIOSFODNN7EXAMPLE"
+  secretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+  nodeSelector: {}
+  affinity: {}
+  ## TLS Settings for Minio
+  tls:
+    enabled: false
+    ## Create a secret with private.key and public.crt files and pass that here. Ref: https://github.com/minio/minio/tree/master/docs/tls/kubernetes#2-create-kubernetes-secret
+    certSecret: ""
+    publicCrt: public.crt
+    privateKey: private.key
+## Use minio as an azure blob gateway, you should disable data persistence so no volume claim are created.
+## https://docs.minio.io/docs/minio-gateway-for-azure
+  azuregateway:
+    enabled: false
+    replicas: 4
+## Enable persistence using Persistent Volume Claims
+## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+##
+  persistence:
+    enabled: false
+    ## A manually managed Persistent Volume and Claim
+    ## Requires persistence.enabled: true
+    ## If defined, PVC must be created manually before volume will be bound
+    #existingClaim:
+
+    ## minio data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    ## Storage class of PV to bind. By default it looks for standard storage class.
+    ## If the PV uses a different storage class, specify that here.
+    #storageClass: standard
+    accessMode: ReadWriteOnce
+    size: 10Gi
+## If subPath is set mount a sub folder of a volume instead of the root of the volume.
+## This is especially handy for volume plugins that don't natively support sub mounting (like glusterfs).
+##
+    subPath: ""
+#--------------------------------------------------------------------------------------------------------------------
+##Fluentbit side car for minio access logs. Note that minio access logs in K8s environment are verbose 
+##with lot of noise due to K8s health check access logs and hence is disabled by default 
+  fluentBitSideCar:
+    enabled: false  
+    resources: {}
+    image: 
+      repository: fluent/fluent-bit
+      tag: "1.0"
+      pullPolicy: IfNotPresent
+    minioParser: |-
+        [PARSER]
+            Name   minioRequest
+            Format regex
+            Regex  (?<minioRequest>^\[REQUEST.*)
+        [PARSER]
+            Name   minioResponse
+            Format regex
+            Regex  (?<minioResponse>^\[RESPONSE.*)
+    service: |-
+        [SERVICE]
+            storage.backlog.mem_limit 30M
+            Parsers_File minioParser.conf
+            HTTP_Listen  0.0.0.0
+            HTTP_Port    7700
+            HTTP_Server  true
+    input: |-
+        [INPUT]
+            Name              tail
+            Path              /tmp/minio.log
+            Multiline         On
+            Parser_Firstline  minioRequest
+            Parser_Response   minioResponse
+            Tag               minio_logs
+    filter: |-
+        [FILTER]
+            Name record_modifier
+            Record POD_NAME                ${MY_POD_NAME}
+            Record POD_NAMESPACE           ${MY_POD_NAMESPACE}
+            Record NODE_NAME               ${MY_NODE_NAME}
+            Record POD_IP                  ${MY_POD_IP}
+            Record HELM_RELEASE_NAME       ${HELM_RELEASE_NAME}
+            Record SERVICE                 ${SERVICE}
+            Record IMAGE                   ${IMAGE}
+            Match                          minio_logs
+    output: |-
+        [OUTPUT]
+            name          stdout
+            match         minio_logs
+        #[OUTPUT]
+        #    name          splunk
+        #    host          <SPLUNK_HOST>
+        #    port          <SPLUNK_PORT>
+        #    tls           off
+        #    tls.verify    off
+        #    splunk_token  <SPLUNK_TOKEN>
+        #    match         minio_logs
+        #[OUTPUT]
+        #    name          es
+        #    host          <ELASTICSEARCH_HOST>
+        #    port          <ELASTICSEARCH_PORT>
+        #    tls           off
+        #    tls.verify    off
+        #    index         krypton
+        #    match         minio_logs
+#--------------------------------------------------------------------------------------------------------------------
+  service:
+    type: ClusterIP
+    clusterIP: ~
+    port: 9000
+    nodePort: 31311
+    annotations: {}
+     # prometheus.io/scrape: 'true'
+     # prometheus.io/path:   '/minio/prometheus/metrics'
+     # prometheus.io/port:   '9000'
+  ingress:
+    enabled: false
+    annotations: 
+      kubernetes.io/ingress.class: nuance-coretech
+      ingress.kubernetes.io/ssl-passthrough: "false"
+      ingress.kubernetes.io/ssl-redirect: "false"
+      ingress.kubernetes.io/rewrite-target: "/"
+    path: /
+    hosts:
+      - minio.local
+    #tls:
+    #- secretName:
+    #  hosts:
+    #    - minio.local
+#-------------------------------------------------------------------------------------------------------------------- 
+  prometheusOperator:
+    enabled: false
+    namespace: monitoring
+    serviceMonitor:
+      labels:
+        team: coretech
+      config:
+        interval: 10s
+        #scheme: https
+        #tlsConfig:
+        #  caFile: 
+        #  certFile:
+        #  insecureSkipVerify: true
+        #  keyFile:
+    prometheusRulesLabels:
+      prometheus: prometheus
+      role: alert-rules
+##Alert Configurations
+  alertConfigurations:
+    getLatencyAlert:
+      timeRange: 1m
+      letancyThreshold: 0.4
+    postLatencyAlert:
+      timeRange: 1m
+      letancyThreshold: 0.4
+    serviceNotAvailableAlert:
+      timeRange: 1m
+      countThreshold: 0

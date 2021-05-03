@@ -1,0 +1,29 @@
+{{- if eq .Values.networkPolicy.defaultEnabled true}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "clag.fullname" . }}-netpol-default
+  annotations:
+{{ toYaml .Values.networkPolicies.annotations | indent 4 }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "clag.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "clag.name" . }}
+      release: {{ .Release.Name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # allow only DNS resolution
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP 
+{{- end}}

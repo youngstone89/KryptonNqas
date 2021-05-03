@@ -1,0 +1,215 @@
+replicas: 1
+image:
+  repository: <docker_repository>
+  tag: 2.2.2-gl557200
+  pullPolicy: IfNotPresent
+redisImage: redis:5
+nameOverride: null
+fullnameOverride: null
+service:
+  type: ClusterIP
+  port: 8090
+  annotations: {}
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+serviceAccount:
+  create: false
+  name: null
+rbac:
+  create: false
+  role:
+    rules:
+      - apiGroups:
+          - ''
+        resources:
+          - endpoints
+        verbs:
+          - list
+          - watch
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: '{{ mul .Values.autoscaling.minReplicas 10 }}'
+  targetCPUUtilizationPercentage: 60
+  annotations: {}
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+redisService:
+  annotations: {}
+headlessService:
+  annotations: {}
+deployment:
+  annotations: {}
+  podLabels: {}
+  podAnnotations: {}
+configmap:
+  annotations: {}
+prometheusOperator:
+  enable: false
+  namespace: monitoring
+  serviceMonitor:
+    labels:
+      team: coretech
+    config:
+      interval: 10s
+  prometheusRulesLabels:
+    prometheus: prometheus
+    role: alert-rules
+prometheus:
+  alerts:
+    selectorLabels: {}
+grafana:
+  configmap:
+    annotations: {}
+  selectorLabels:
+    grafana_dashboard: grafana_dashboard
+  haproxyMetricsService: commons-global-exporter
+  datasource:
+    name: Prometheus
+    label: Prometheus
+    description: ''
+    type: datasource
+    pluginId: prometheus
+    pluginName: Prometheus
+alertConfigurations:
+  enableAlerts: false
+  configmap:
+    annotations: {}
+  alertLabels: {}
+  routeUnavailable:
+    timeInterval: 10s
+    timeRange: 1m
+    percentageThreshold: 0.1
+  responseLatency:
+    timeInterval: 10s
+    timeRange: 1m
+    timeThresholdMs: 1000
+  redisError:
+    timeInterval: 10s
+    timeRange: 1m
+    countThreshold: 1
+  redisReconnect:
+    timeInterval: 10m
+    timeRange: 30m
+    countThreshold: 10
+  podRestart:
+    timeInterval: 10m
+    timeRange: 30m
+    countThreshold: 2
+networkPolicy:
+  annotations: {}
+  defaultEnabled: false
+  enabled: false
+  monitoring:
+    prometheus:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    pushgateway:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+    jaeger:
+      enabled: false
+      namespaceSelector:
+        matchLabels: {}
+      podSelector:
+        matchLabels: {}
+  redis:
+    enabledovernamespace: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+    enabledoveripport: false
+    enabledoverport: false
+    ipValue: null
+    portValue: null
+  krypton:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  ambassador:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  client:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+  ccss:
+    enabled: false
+    namespaceSelector:
+      matchLabels: {}
+    podSelector:
+      matchLabels: {}
+config:
+  log:
+    level: info
+    enableConsole: true
+    colorizeConsole: true
+    enableFile: false
+  grpc:
+    protoFiles:
+    - v1/nuance/asr/v1/recognizer.proto
+    - v1beta2/nuance_asr.proto
+    - v1beta1/nuance_asr.proto
+    transports:
+    - http://0.0.0.0:8090
+  httpClient:
+    maxRedirects: 0
+  tls:
+    keyFile: 
+    certFile: 
+    passphrase:
+    rejectUnauthorized: false
+    caCertificates: []
+  redisClient:
+    host: localhost
+    port: 6379
+    enableOfflineQueue: false
+  metrics:
+    definitions: metrics.yaml
+    pushGatewayURL:
+    scrapeURL: http://0.0.0.0:8078/metrics
+  router:
+    serviceName:
+    appConfigUrl:
+    retryLimit: 7
+    retryLimitMs: 2000
+    retryDistFactor: 1.7
+    enableHotRouting: true
+    languageMappings: {}
+    enableSemverPrefs: false
+    enableSemverSoftMatch: false
+    enableLegacyUrns: false
+    enableDeprecatedLookup: false  
+    publicTopics:
+    - GEN
+    forwardMetadata:
+    - grpc-message-type
+    - /^x-nuance-/

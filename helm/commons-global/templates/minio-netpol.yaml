@@ -1,0 +1,28 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.minio.networkPolicy.enabled true) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "commons-global.fullname" . }}-minio-netpol
+  annotations:
+{{ toYaml .Values.commons.networkPolicy.annotations | indent 4 }}   
+  labels:
+    app: {{ template "commons-global.name" . }}-minio-netpol
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    pool: {{ template "commons-global.name" . }}-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+{{- if .Values.commons.minio.networkPolicy.ingress }}        
+  ingress:
+  {{ toYaml .Values.commons.minio.networkPolicy.ingress | nindent 2 }}
+{{- end }}  
+  
+{{- if .Values.commons.minio.networkPolicy.egress }}  
+  egress:
+  {{ toYaml .Values.commons.minio.networkPolicy.egress | nindent 2 }}
+{{- end }}  
+
+{{- end}}

@@ -1,0 +1,17 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "nqas.fullname" . }}-custom-env-variables
+  annotations:
+{{ toYaml .Values.customEnvConfigmap.annotations | indent 4 }}
+  labels:
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  custom-environment-variables.json: |-
+      {
+        "defaultHostName": "MY_POD_IP"
+      }

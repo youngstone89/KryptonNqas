@@ -1,0 +1,6 @@
+dependencies:
+  - name: minio
+    repository: ./charts/minio
+    version: 2.4.9
+    alias: minio
+    condition: minio.enabled

@@ -1,0 +1,87 @@
+{{- if eq .Values.prometheusOperator.enable false}}
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "nqas.fullname" . }}-alerts
+  annotations:
+{{ toYaml .Values.alertConfigurations.configmap.annotations | indent 4 }}   
+  labels:
+{{ toYaml .Values.prometheus.alerts.selectorLabels | indent 4 }}
+data:
+  alert-rules.yaml: |-
+    groups:
+    - name: ./nqas-alerting.rules
+      rules:
+      - alert: nqas-failed_commands
+        expr: (sum by(service) (round(increase(nqas_command_failed_response_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.failedCommands.timeRange }}]))) / sum by(service) (round(increase(nqas_command_request_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.failedCommands.timeRange }}])))) * 100 >= {{ .Values.alertConfigurations.failedCommands.percentageThreshold }}
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: Failed commands were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.failedCommands.timeRange }}. If the problem persists, collect diagnotics logs and escalate to support.
+      - alert: nqas-protocol_failure
+        expr: (sum by(service) (round(increase(nqas_command_protocol_failure_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.protocolFailure.timeRange }}]))) / sum by(service) (round(increase(nqas_command_request_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.protocolFailure.timeRange }}])))) * 100 >= {{ .Values.alertConfigurations.protocolFailure.percentageThreshold }}
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: Protocol failures were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.protocolFailure.timeRange }}. Verify nqas client settings. If the problem persists, collect diagnotics logs and escalate to support.
+      - alert: nqas-train_failure
+        expr: (sum by(service) (round(increase(nqas_command_train_failure_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.trainFailure.timeRange }}]))) / sum by(service) (round(increase(nqas_command_train_request_total{service="{{ template "nqas.fullname" . }}"}[{{ .Values.alertConfigurations.trainFailure.timeRange }}])))) * 100 >= {{ .Values.alertConfigurations.trainFailure.percentageThreshold }}
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary:  Train failures were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.trainFailure.timeRange }}. If the problem persists, collect diagnotics logs and escalate to support.
+      - alert: nqas-initialization_failure
+        expr: abs(time() - nqas_last_engine_initialization_failure_unixtime{service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.initializationFailure.timeInSeconds }} or abs(time() - nqas_last_engine_initialization_failure_unixtime{exported_service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.initializationFailure.timeInSeconds }}
+        for: 10s
+        labels:
+          severity: error
+        annotations:
+          summary: Engine Initialization failure observed for service {{ template "nqas.fullname" . }}. Verify a valid license is configured and the host is configured with the minimum memory required to run the service. For other problems collect diagnostics logs and escalate to support.
+      - alert: nqas-configuration_failure
+        expr: abs(time() - nqas_last_engine_configuration_failure_unixtime{service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.configurationFailure.timeInSeconds }} or abs(time() - nqas_last_engine_configuration_failure_unixtime{exported_service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.configurationFailure.timeInSeconds }}
+        for: 10s
+        labels:
+          severity: error
+        annotations:
+          summary: Invalid configuration observed for service {{ template "nqas.fullname" . }}. NQAS Service cannot start due to invalid configuration. Verify that all configuration parameters and values are valid and that all required parameters are provided in the configMap.
+      - alert: nqas-persistent_error_failure
+        expr: abs(time() - nqas_last_engine_persistentError_failure_unixtime{service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.persistentErrorFailure.timeInSeconds }} or abs(time() - nqas_last_engine_persistentError_failure_unixtime{exported_service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.persistentErrorFailure.timeInSeconds }}
+        for: 10s
+        labels:
+          severity: error
+        annotations:
+          summary: Persistent failure observed for service {{ template "nqas.fullname" . }}. NQAS Service is automatically shutting down, as the code took an unexpected, unrecoverable path. If the problem persists, collect diagnostics logs and escalate to support.
+      - alert: nqas-license_server_disconnection
+        expr: sum by (service) (nqas_license_server_disconnection_status{service="{{ template "nqas.fullname" . }}"}) > 0
+        for: {{ .Values.alertConfigurations.licenseServerDisconnect.timeThreshold }}
+        labels:
+          severity: error
+        annotations:
+          summary: NQAS could not reconnect with license manager. NQAS service {{ "{{" }} $labels.service {{ "}}" }}. Verify the license manager is running on the configured host, and is accessible from the NQAS host.
+      - alert: nqas-datastore_client_connection
+        expr: avg by (service) (nqas_datastore_client_connection_status{service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.datastoreClientConnect.avgConnectionThreshold }}
+        for: {{ .Values.alertConfigurations.datastoreClientConnect.timeThreshold }}
+        labels:
+          severity: info
+        annotations:
+          summary: NQAS Redis Client could not reconnect with datastore (Redis). NQAS service {{ "{{" }} $labels.service {{ "}}" }}. Verify the datastore (Redis) is running on the configured host, and is accessible from the NQAS host.
+      - alert: nqas-datastore_subscriber_connection
+        expr: avg by (service) (nqas_datastore_subscriber_connection_status{service="{{ template "nqas.fullname" . }}"}) < {{ .Values.alertConfigurations.datastoreSubscriberConnect.avgConnectionThreshold }}
+        for: {{ .Values.alertConfigurations.datastoreSubscriberConnect.timeThreshold }}
+        labels:
+          severity: warning
+        annotations:
+          summary: NQAS Redis Subscriber could not reconnect with datastore (Redis). NQAS service {{ "{{" }} $labels.service {{ "}}" }}. Verify the datastore (Redis) is running on the configured host, and is accessible from the NQAS host.
+      - alert: nqas-pod_container_nqas_restart
+        expr: sum(round(increase(kube_pod_container_status_restarts_total{job="kube-state-metrics", namespace="{{ .Release.Namespace }}", pod=~"{{ template "nqas.fullname" . }}.*",container="{{ template "nqas-container.name" . }}"}[{{ .Values.alertConfigurations.podRestart.timeRange }}]))) > {{ .Values.alertConfigurations.podRestart.avgThresholdCount }}
+        for: {{ .Values.alertConfigurations.podRestart.timeInterval }}
+        labels:
+          severity: critical
+          {{ toYaml .Values.alertConfigurations.alertLabels | nindent 10 }}
+        annotations:
+          summary: Frequent container restart observed for service {{ template "nqas.fullname" . }} and for container  {{ template "nqas-container.name" . }} .
+{{- end}}

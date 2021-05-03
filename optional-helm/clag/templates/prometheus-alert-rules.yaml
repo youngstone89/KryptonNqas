@@ -1,0 +1,74 @@
+{{- if eq .Values.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "clag.fullname" . }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{ toYaml .Values.prometheusOperator.prometheusRulesLabels | indent 4 }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+spec:
+  groups:
+  - name: ./clagAlert.rules
+    rules:
+    - alert: clag-error_response-{{ .Release.Name }}
+      expr: (sum by(service) (round(increase(clag_error_response_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.errorResponseAlert.timeRange }}]))) / sum by(service) (round(increase(clag_response_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.errorResponseAlert.timeRange }}])))) * 100 >= {{ .Values.alertConfiguration.errorResponseAlert.percentageThreshold }}
+      for: 10s
+      labels:
+        severity: critical
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Error responses from Call Log Aggregator were observed for {{ "{{" }} $labels.service {{ "}}" }} service. If the problem persists, collect diagnotics logs and escalate to support.
+    - alert: clag-request_validation_failure-{{ .Release.Name }}
+      expr: (sum by(service) (round(increase(clag_request_validation_failure_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.validationFailureAlert.timeRange }}]))) / sum by(service) (round(increase(clag_response_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.validationFailureAlert.timeRange }}])))) * 100 >= {{ .Values.alertConfiguration.validationFailureAlert.percentageThreshold }}
+      for: 10s
+      labels:
+        severity: critical
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Request validation errors were observed for {{ "{{" }} $labels.service {{ "}}" }} service. Verify that client is sending a valid request payload as per the protocol specification. 
+    - alert: clag-failed_archive_and_export-{{ .Release.Name }}
+      expr: (sum by(service) ((round(increase(clag_failed_archive_and_export_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.archiveAndExportFailureAlert.timeRange }}]))) / ((round(increase(clag_failed_archive_and_export_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.archiveAndExportFailureAlert.timeRange }}]))) + (round(increase(clag_successful_archive_and_export_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.archiveAndExportFailureAlert.timeRange }}])))))) * 100 >= {{ .Values.alertConfiguration.archiveAndExportFailureAlert.percentageThreshold }}
+      for: 10s
+      labels:
+        severity: critical
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Archive and export to object store failures were observed for {{ "{{" }} $labels.service {{ "}}" }} service. Verify Minio Client settings in Coll Log Aggregator configmap. If the problem persists, collect diagnotics logs and escalate to support.
+    - alert: clag-runtime_config_watcher_init_failure-{{ .Release.Name }}
+      expr: sum by (service) (clag_runtime_configmap_watcher_init_failure_current{service="{{ template "clag.fullname" . }}"}) > 0
+      for: 10s
+      labels:
+        severity: error
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Runtime config watcher initialization failed for {{ "{{" }} $labels.service {{ "}}" }} service. Collect diagnotics logs and escalate to support.
+    - alert: clag-incomplete_sessions-{{ .Release.Name }}
+      expr: (sum by(service) (round(increase(clag_incomplete_sessions_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.incompleteSessionsAlert.timeRange }}]))) / sum by(service) (round(increase(clag_sessions_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.incompleteSessionsAlert.timeRange }}])))) * 100 >= {{ .Values.alertConfiguration.incompleteSessionsAlert.percentageThreshold }}
+      for: 10s
+      labels:
+        severity: critical
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Incomplete sessions are observred for {{ "{{" }} $labels.service {{ "}}" }} service. This happens when Client connecting to Call log aggregator is disconnecting the websocket connection before session close command. If the problem persists, Collect diagnotics logs and escalate to support.
+    - alert: clag-file_persist_error-{{ .Release.Name }}
+      expr: (sum by(service) ((round(increase(clag_file_persist_error_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.filePersistError.timeRange }}]))) / ((round(increase(clag_file_persist_error_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.filePersistError.timeRange }}]))) + (round(increase(clag_file_persist_total{service="{{ template "clag.fullname" . }}"}[{{ .Values.alertConfiguration.filePersistError.timeRange }}])))))) * 100 >= {{ .Values.alertConfiguration.filePersistError.percentageThreshold }}
+      for: 10s
+      labels:
+        severity: error
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Audio and Metadata persistence failures were observed for {{ "{{" }} $labels.service {{ "}}" }} service. Verify read write access permissions are set correctly for Persistent Volumes attached to CLAG pods.
+    - alert: clag-pod_container_nqas_restart-{{ .Release.Name }}
+      expr: sum(round(increase(kube_pod_container_status_restarts_total{job="kube-state-metrics", namespace="{{ .Release.Namespace }}", pod=~"{{ template "clag.fullname" . }}.*",container="{{ template "clag-container.name" . }}"}[{{ .Values.alertConfiguration.podRestart.timeRange }}]))) > {{ .Values.alertConfiguration.podRestart.avgThresholdCount }}
+      for: {{ .Values.alertConfiguration.podRestart.timeInterval }}
+      labels:
+        severity: critical
+        {{ toYaml .Values.alertConfiguration.alertLabels | nindent 8 }}
+      annotations:
+        summary: Frequent container restart observed for service {{ template "clag.fullname" . }} and for container  {{ template "clag-container.name" . }} .         
+{{- end}}

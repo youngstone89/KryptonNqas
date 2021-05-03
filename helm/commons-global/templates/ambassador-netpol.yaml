@@ -1,0 +1,43 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.ambassador.networkPolicy.enabled true) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "commons-global.fullname" . }}-ambassador-netpol
+  annotations:
+{{ toYaml .Values.commons.networkPolicy.annotations | indent 4 }}   
+  labels:
+    app: {{ template "commons-global.name" . }}-ambassador-netpol
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    pool: {{ template "commons-global.name" . }}-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ambassador
+  ingress:
+  {{ toYaml .Values.commons.ambassador.networkPolicy.ingress | nindent 2 }}
+    
+    # You can your own port...
+  egress:
+{{- if .Values.commons.ambassador.networkPolicy.egress }}    
+  {{ toYaml .Values.commons.ambassador.networkPolicy.egress | nindent 2 }}
+{{- end }}
+  # Use the following element to forward traffic from ambassador to pods which have
+  # the label `pod.crt.nuance.com/accept-ambassador-traffic` equals to `"true"` (with double quotes)
+  - to:
+    - podSelector:
+        matchLabels:
+          pod.crt.nuance.com/accept-ambassador-traffic: "true"
+ 
+  # Use the following element if you want to let your ambassador forwards traffic to a pod in an other namespace
+  # (which have the label `pod.crt.nuance.com/accept-ambassador-traffic` equals to `"true"`)
+  # Note your other namespace needs to have the label `name` set. Run `kubectl get ns MY_OTHER_NAMESPACE_NAME --show-labels
+  #- to:
+  #  - namespaceSelector:
+  #      matchLabels:
+  #        name: MY_OTHER_NAMESPACE_NAME
+  #    podSelector:
+  #      matchLabels:
+  #        pod.crt.nuance.com/accept-ambassador-traffic: "true"
+{{- end}}

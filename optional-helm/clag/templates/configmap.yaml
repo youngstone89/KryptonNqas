@@ -1,0 +1,60 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "clag.fullname" . }}
+  annotations:
+{{ toYaml .Values.configmap.annotations | indent 4 }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  {{ .Values.configFileName }}.yaml: |-
+    dataDir: /app/data
+    engineUUID: clag
+    http:
+{{- if eq .Values.http.enabled true}}
+      port: {{ .Values.http.port }}
+{{- else }}
+      port: 
+{{- end }}
+    https:
+{{- if eq .Values.https.enabled true}}
+      port: {{ .Values.https.port }}
+{{ toYaml .Values.https.sslConfig | indent 6}}
+{{- else }}
+      port: 
+{{- end }}
+    log:
+        level: 'status'
+        colorizeConsole: false
+        enableConsole: true
+        timestamp: true
+        filelogging:
+          enableFile: {{ .Values.log.enableFile }}
+          maxSize: {{ .Values.log.maxSize }}
+          maxFiles: {{ .Values.log.maxFiles }}
+          logsDir: '/app/logs'
+{{ toYaml .Values.clagConfig | indent 4 }}
+###########################################################################################################################################################################
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+  fluent-bit.conf: |-
+        @INCLUDE service.conf
+        @INCLUDE input.conf
+        @INCLUDE filter.conf
+        @INCLUDE output.conf
+  service.conf:
+{{ toYaml .Values.fluentBitSideCar.service | indent 2 }}
+  input.conf:
+{{ toYaml .Values.fluentBitSideCar.input | indent 2 }}
+  filter.conf:
+{{ toYaml .Values.fluentBitSideCar.filter | indent 2 }}
+  output.conf:
+{{ toYaml .Values.fluentBitSideCar.output | indent 2 }}
+  parser.conf:
+{{ toYaml .Values.fluentBitSideCar.parser | indent 2 }}
+  kvs.lua:
+{{ toYaml .Values.fluentBitSideCar.kvslua | indent 2 }}
+{{- end }}

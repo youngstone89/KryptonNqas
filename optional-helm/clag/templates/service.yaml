@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "clag.fullname" . }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "clag.fullname" . }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}       
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  {{- if eq .Values.http.enabled true}}
+    - port: {{ .Values.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  {{- end }}
+  {{- if eq .Values.https.enabled true}}
+    - port: {{ .Values.service.httpsPort }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  {{- end }}
+  selector:
+    app: {{ template "clag.name" . }}
+    release: {{ .Release.Name }}

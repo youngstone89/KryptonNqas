@@ -1,0 +1,57 @@
+{{- if eq .Values.minio.enabled true}}
+{{- if eq .Values.minio.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "minio.fullname" . }}
+  labels:
+{{ toYaml .Values.minio.prometheusOperator.prometheusRulesLabels | indent 4 }}
+    alerts: minio
+    app: {{ template "minio.name" . }}
+    chart: {{ template "minio.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.minio.prometheusOperator.namespace }}
+spec:
+  groups:
+    - name: ./minio-alert.rules
+      rules:
+      - alert: minio-get_latency_alert-{{ .Release.Name }}
+        expr: sum by (service) (rate(minio_http_requests_duration_seconds_sum{request_type="GET", service="{{ template "minio.fullname" . }}"}[{{ .Values.minio.alertConfigurations.getLatencyAlert.timeRange }}]))/sum by (service) ((rate(minio_http_requests_duration_seconds_count{request_type="GET", service="{{ template "minio.fullname" . }}"}[{{ .Values.minio.alertConfigurations.getLatencyAlert.timeRange }}]))) > {{ .Values.minio.alertConfigurations.getLatencyAlert.letancyThreshold }}
+        for: 10s
+        labels:
+          severity: minor
+        annotations:
+          summary: Average GET request latency of minio service {{ "{{" }} $labels.service {{ "}}" }} exceeded configured threshold in last {{ .Values.minio.alertConfigurations.getLatencyAlert.timeRange }}. If the problem persists, escalate to support.
+      - alert: minio-post_latency_alert-{{ .Release.Name }}
+        expr: sum by (service) (rate(minio_http_requests_duration_seconds_sum{request_type="POST", service="{{ template "minio.fullname" . }}"}[{{ .Values.minio.alertConfigurations.postLatencyAlert.timeRange }}]))/sum by (service) ((rate(minio_http_requests_duration_seconds_count{request_type="POST", service="{{ template "minio.fullname" . }}"}[{{ .Values.minio.alertConfigurations.postLatencyAlert.timeRange }}]))) > {{ .Values.minio.alertConfigurations.postLatencyAlert.letancyThreshold }}
+        for: 10s
+        labels:
+          severity: minor
+        annotations:
+          summary: Average POST request latency of minio service {{ "{{" }} $labels.service {{ "}}" }} exceeded configured threshold in last {{ .Values.minio.alertConfigurations.postLatencyAlert.timeRange }}. If the problem persists, escalate to support.
+      - alert: minio-disk_offline_alert-{{ .Release.Name }}
+        expr: (sum by (service) (minio_offline_disks{service="global-minio"})) > 0 
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: one or more persistent storage disk associated with minio service {{ "{{" }} $labels.service {{ "}}" }} are offline. Escalate to Kubernetes cluster administrator.
+      - alert: minio-disk_failure_alert-{{ .Release.Name }}
+        expr: (sum by (service) (minio_offline_disks{service="global-minio"})/sum by (service) (minio_total_disks{service="global-minio"})*100) >= 50
+        for: 10s
+        labels:
+          severity: fatal
+        annotations:
+          summary: More than 50% persistent storage disks associated with minio service {{ "{{" }} $labels.service {{ "}}" }} are offline. Escalate to Kubernetes cluster administrator.
+      - alert: minio-503_alert-{{ .Release.Name }}
+        expr: sum by (service) (round(increase(promhttp_metric_handler_requests_total{code="503"}[{{ .Values.minio.alertConfigurations.serviceNotAvailableAlert.timeRange }}]))) > {{ .Values.minio.alertConfigurations.serviceNotAvailableAlert.countThreshold }}  
+        for: 10s
+        labels:
+          severity: major
+        annotations:
+          summary: Internal minio server error. If the problem persists, collect diagnotics logs and escalate to support or contact minio admin.
+
+{{- end}}
+{{- end}}

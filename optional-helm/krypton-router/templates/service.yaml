@@ -1,0 +1,39 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "krypton-router.fullname" . }}
+  labels:
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "krypton-router.fullname" . }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: xasr-api
+      port: {{ .Values.service.port }}
+      targetPort: http2
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "krypton-router.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: xasr-api
+      port: {{ .Values.service.port }}
+      protocol: TCP
+    - name: metrics-port
+      port: {{ regexFind ":\\d+" .Values.config.metrics.scrapeURL | trimPrefix ":" }}
+      protocol: TCP  
+    - name: redis
+      port: {{ .Values.config.redisClient.port }}
+      targetPort: redis
+      protocol: TCP
+  selector:
+    app: {{ include "krypton-router.name" . }}
+    release: {{ .Release.Name }}

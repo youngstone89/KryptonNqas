@@ -1,0 +1,172 @@
+# do not remove this line: it is needed to skip possibly added UTF8 BOM.
+engineUUID: KRYPTON 
+shutdownTimeoutMs: 10000
+enableInfoEvents: false
+enableCallLogEvents: false
+enableRuntimeConfig: false
+#maxAudioChunkDuration: 250
+wordsetItemLimit:
+grammarItemLimit:
+grammarSizeLimit:
+defaultHostName:
+defaultNetworkInterface: 
+    name: 
+    family: 'IPv4'
+    
+http:
+    port: 8078
+    host:
+     
+https:
+    port: 8080
+    host:    
+    keyFile: './keys/server.key'
+    certFile: './keys/server.crt'
+    passphrase:        
+    requestCert: false
+    rejectUnauthorized: true
+    caCertificates: []
+
+http2:
+    port: 8090
+    host:
+
+https2:
+    port:
+    host:
+    keyFile: './keys/server.key'
+    certFile: './keys/server.crt'
+    passphrase:
+    requestCert: false
+    rejectUnauthorized: true
+    caCertificates: []
+
+grpc:
+    protoFiles:
+     - v1beta1/nuance_asr.proto
+     - v1beta2/nuance_asr.proto
+     - v1/nuance/asr/v1/recognizer.proto
+    websocketPath: /grpc
+    maxAudioPrebufferSize: 320000
+
+protocol:
+    defaultVersion: '3.0'
+    generateAttachId: false
+    acknowledgeAudio: false
+    tokenizationKey:
+    enableMetrics: false
+    defaultTopic: 'GEN'
+    httpHeadersWhitelist: ['cache-control']
+    defaults:
+        recognitionParameters:
+            enableSpeakerProfileUpdate: true
+            enableNBestOnRejection: false
+        sessionParameters:
+            detachedTimeout: '0s'
+
+license:
+    # path to the folder where the license file has been deployed. filename must not be included. Alternatively, use the notation <port>@<host>
+    path: '.'
+
+log:
+    level: 'trace'
+    audioLogLevel:
+    maxSize: 5242880
+    maxFiles: 5
+    enableConsole: true
+    colorizeConsole: true
+    enableFile: true
+    timestamp: true
+    # the following parameters are reserved for Nuance use only.
+    addonsLevel: 'status'
+
+dataPack:
+    languages: []
+    loadNightlyUpdateVersionIfAvailable: true
+
+httpClient:
+    requestTimeoutMs: 10000
+    followRedirect: true
+    maxRedirects: 10
+    rejectUnauthorized: false    
+    keyFile: 
+    certFile: 
+    passphrase:    
+    caCertificates: []
+    cache:
+        enable: true
+        maxSize: 500
+        cleanAfterNumSessionsCompleted: 5
+        saveToDisk: false
+        shared: true
+
+minioClients:
+    - url: 'https://play.minio.io:9000'
+      accessKey: 'Q3AM3UQ867SPQQA43P2F'
+      secretKey: 'f5703622e9b0cab45348da61458edc909c827bee8168d690ddb2f74973a8fedd3975f1af505defa4b4ce4c8555061e05'
+      requestTimeoutMs: 10000
+      saveTimeoutMs: 10000
+
+rmRegistration:
+    urls: []
+    retryIntervalMs: 5000
+
+routerNotifier:
+    enable: false
+    advertise: http
+    leakCheckIntervalMs: 30000
+    leakRecoveryDelayMs: 1000
+    redisClient:
+        host: 
+        port: 6379
+        enableOfflineQueue: false
+
+callRecording:
+    serverURL:
+    PCIKey: keys/call_recording_PCI_public_key.pem
+    includeAudio: true
+    includeS3Events: true
+    includeS3Configuration: true
+    includeMetrics: true
+    includePrePostProcessingResults: true
+    includePartialResults:
+        enable: false
+        minIntervalMs: 100
+    includeEnvVar: []
+    applications: 
+       - applicationName: exampleApp
+         PCIKey: './keys/call_recording_PCI_public_key.pem' 
+         includeAudio: true
+ 
+preload:
+    - dataPack: 
+        language:
+        topic:
+      objects:
+        - url: sampleURL
+          weight: 0
+          type: application/x-nuance-domainlm
+
+tracing:
+    enable: false
+    serviceName:
+    reporter:
+        agentHost:
+        agentPort:
+        collectorEndpoint:
+        username:
+        password:
+        logSpans: false
+        flushIntervalMs:
+    sampler:
+        type:
+        param: 0
+        hostPort:
+        refreshIntervalMs:
+    throttler:
+        host:
+        port:
+        refreshIntervalMs:
+
+uriResolver:
+    templates:

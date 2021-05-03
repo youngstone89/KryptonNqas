@@ -1,0 +1,13 @@
+{{- if and .Values.rbac.create .Values.rbac.role.rules -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "krypton-router.fullname" . }}
+  labels:
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+{{ toYaml .Values.rbac.role.rules }}
+{{- end -}}

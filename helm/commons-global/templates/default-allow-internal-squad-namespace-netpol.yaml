@@ -1,0 +1,19 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.networkPolicy.defaultPolicies true) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "commons-global.fullname" . }}-default-allow-internal-squad-namespace-netpol
+  annotations:
+{{ toYaml .Values.commons.networkPolicy.annotations | indent 4 }}    
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    namespace.crt.nuance.com/owner: infra-addons-manager
+    pool: {{ template "commons-global.name" . }}-netpol
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector: {}
+{{- end}}

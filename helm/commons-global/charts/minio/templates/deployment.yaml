@@ -1,0 +1,325 @@
+{{- if eq .Values.mode "standalone" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "minio.fullname" . }}
+  labels:
+    app: {{ template "minio.name" . }}
+    chart: {{ template "minio.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  strategy:
+    type: {{ .Values.DeploymentUpdate.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.DeploymentUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.DeploymentUpdate.maxUnavailable }}
+  {{- if .Values.nasgateway.enabled }}
+  replicas: {{ .Values.nasgateway.replicas }}
+  {{- end }}
+  {{- if .Values.s3gateway.enabled }}
+  replicas: {{ .Values.s3gateway.replicas }}
+  {{- end }}
+  {{- if .Values.azuregateway.enabled }}
+  replicas: {{ .Values.azuregateway.replicas }}
+  {{- end }}
+  {{- if .Values.gcsgateway.enabled }}
+  replicas: {{ .Values.gcsgateway.replicas }}
+  {{- end }}
+  {{- if .Values.ossgateway.enabled }}
+  replicas: {{ .Values.ossgateway.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "minio.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      name: {{ template "minio.fullname" . }}
+      labels:
+        app: {{ template "minio.name" . }}
+        release: {{ .Release.Name }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+      {{- end }}
+    spec:
+  {{- if .Values.priorityClassName }}
+      priorityClassName: "{{ .Values.priorityClassName }}"
+  {{- end }}
+      containers:
+{{- if eq .Values.fluentBitSideCar.enabled true}}
+        - name: fluent-bit
+          image: {{ .Values.fluentBitSideCar.image.repository }}:{{ .Values.fluentBitSideCar.image.tag }}
+          imagePullPolicy: {{ .Values.fluentBitSideCar.image.pullPolicy }}
+          ports:
+          - name: fluentbit-port
+            containerPort: 7700
+          livenessProbe:
+            httpGet:
+              path: /
+              port: fluentbit-port
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: fluentbit-port
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+{{ toYaml .Values.fluentBitSideCar.resources | indent 12 }}
+          volumeMounts:
+          - name: minio-access-logs
+            mountPath: /tmp
+          - name: fluent-bit-configmap-volume
+            mountPath: /fluent-bit/etc/fluent-bit.conf
+            subPath: fluent-bit.conf
+          - name: fluent-bit-parser-config-volume
+            mountPath: /fluent-bit/etc/minioParser.conf
+            subPath: minioParser.conf
+          - name: fluent-bit-service-config-volume
+            mountPath: /fluent-bit/etc/service.conf
+            subPath: service.conf
+          - name: fluent-bit-output-config-volume
+            mountPath: /fluent-bit/etc/output.conf
+            subPath: output.conf
+          - name: fluent-bit-input-config-volume
+            mountPath: /fluent-bit/etc/input.conf
+            subPath: input.conf
+          - name: fluent-bit-filter-config-volume
+            mountPath: /fluent-bit/etc/filter.conf
+            subPath: filter.conf
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MY_POD_SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          - name: HELM_RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: SERVICE
+            value: haproxy-ingress-svc-{{ .Release.Name }}
+          - name: IMAGE
+            value: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+{{- end }}
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.s3gateway.enabled }}
+          command: [ "/bin/sh",
+          "-ce",
+          "/usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} gateway s3 {{ .Values.s3gateway.serviceEndpoint }}" ]
+          {{- else }}
+          {{- if .Values.azuregateway.enabled }}
+          command: [ "/bin/sh", 
+          "-ce", 
+          "/usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} gateway azure" ]
+          {{- else }}
+          {{- if .Values.gcsgateway.enabled }}
+          command: [ "/bin/sh", 
+          "-ce", 
+          "/usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} gateway gcs {{ .Values.gcsgateway.projectId }}" ]
+          {{- else }}
+          {{- if .Values.ossgateway.enabled }}
+          command: [ "/bin/sh", 
+          "-ce", 
+          "cp /tmp/config.json {{ .Values.configPath }} && 
+          /usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} gateway oss {{ .Values.ossgateway.endpointURL }}" ]
+          {{- else }}
+          {{- if .Values.nasgateway.enabled }}
+          command: [ "/bin/sh", 
+          "-ce", 
+          "/usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} gateway nas {{ .Values.mountPath }}" ]
+          {{- else }}
+          command: [ "/bin/sh", 
+          "-ce", 
+          "/usr/bin/docker-entrypoint.sh minio -C {{ .Values.configPath }} server {{ .Values.mountPath }}" ]
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          volumeMounts:
+            {{- if eq .Values.fluentBitSideCar.enabled true}}
+            - name: minio-access-logs
+              mountPath: /tmp
+            {{- end }}
+            {{- if and .Values.persistence.enabled (not .Values.gcsgateway.enabled) (not .Values.azuregateway.enabled) (not .Values.s3gateway.enabled) }}
+            - name: export
+              mountPath: {{ .Values.mountPath }}
+              {{- if .Values.persistence.subPath }}
+              subPath: "{{ .Values.persistence.subPath }}"
+              {{- end }}
+            {{- end }}
+            {{- if .Values.gcsgateway.enabled }}
+            - name: minio-user
+              mountPath: "/etc/credentials"
+              readOnly: true
+            {{- end }}
+            - name: minio-config-dir
+              mountPath: {{ .Values.configPath }}
+            {{- if .Values.tls.enabled }}
+            - name: cert-secret-volume
+              mountPath: {{ .Values.configPath }}certs
+            {{ end }}
+          ports:
+            - name: service
+              containerPort: 9000
+          env:
+           {{- if eq .Values.fluentBitSideCar.enabled true}}
+            - name: MINIO_HTTP_TRACE
+              value: /tmp/minio.log
+           {{- end }}
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.existingSecret }}{{ .Values.existingSecret }}{{ else }}{{ template "minio.fullname" . }}{{ end }}
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.existingSecret }}{{ .Values.existingSecret }}{{ else }}{{ template "minio.fullname" . }}{{ end }}
+                  key: secretkey
+            {{- if .Values.gcsgateway.enabled }}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/credentials/gcs_key.json"
+            {{- end }}
+            {{- range $key, $val := .Values.environment }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end}}
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: service
+              {{- if .Values.tls.enabled }}
+              scheme: HTTPS
+              {{ else }}
+              scheme: HTTP
+              {{- end }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              {{- if .Values.tls.enabled }}
+              scheme: HTTPS
+              {{- end }}
+              path: /minio/health/ready
+              port: service
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+{{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+{{- end }}
+      volumes:
+{{- if eq .Values.fluentBitSideCar.enabled true}}
+        - name: fluent-bit-configmap-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: fluent-bit.conf
+              path: fluent-bit.conf
+              mode: 420
+        - name: fluent-bit-parser-config-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: minioParser.conf
+              path: minioParser.conf
+              mode: 420
+        - name: fluent-bit-service-config-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: service.conf
+              path: service.conf
+              mode: 420
+        - name: fluent-bit-output-config-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: output.conf
+              path: output.conf
+              mode: 420
+        - name: fluent-bit-input-config-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: input.conf
+              path: input.conf
+              mode: 420
+        - name: fluent-bit-filter-config-volume
+          configMap:
+            name: {{ template "minio.fullname" . }}-fluentbit
+            items:
+            - key: filter.conf
+              path: filter.conf
+              mode: 420
+        - name: minio-access-logs
+          emptyDir: {}
+{{- end }}
+        {{- if and ((not .Values.gcsgateway.enabled) (not .Values.azuregateway.enabled) (not .Values.s3gateway.enabled)) }}
+        - name: export
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "minio.fullname" .) }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+        {{- end }}
+        - name: minio-user
+          secret:
+            secretName: {{ if .Values.existingSecret }}{{ .Values.existingSecret }}{{ else }}{{ template "minio.fullname" . }}{{ end }}
+        - name: minio-config-dir
+          emptyDir: {}
+        {{- if .Values.tls.enabled }}
+        - name: cert-secret-volume
+          secret:
+            secretName: {{ .Values.tls.certSecret }}
+            items:
+            - key: {{ .Values.tls.publicCrt }}
+              path: public.crt
+            - key: {{ .Values.tls.privateKey }}
+              path: private.key
+            - key: {{ .Values.tls.publicCrt }}
+              path: CAs/public.crt
+        {{ end }}
+{{- end }}

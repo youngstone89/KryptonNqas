@@ -1,0 +1,227 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "commons-global.fullname" . }}-haproxy
+  labels:
+    app: {{ template "commons-global.name" . }}-haproxy
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "commons-global.name" . }}-haproxy
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        jcmoraisjr.haproxy-ingress/tag: {{ .Values.haproxyIngress.image.tag | quote }}
+        jcmoraisjr.haproxy-ingress/image-repository: {{ .Values.haproxyIngress.image.repository }}
+        chartFullName: {{ template "commons-global.fullname" . }}
+      labels:
+        app: {{ template "commons-global.name" . }}-haproxy
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "commons-global.fullname" . }}
+      imagePullSecrets:
+{{ toYaml .Values.haproxyIngress.imagePullSecrets | indent 8 }}
+      containers:
+      - name: haproxy-ingress
+        image: {{ .Values.haproxyIngress.image.repository }}:{{ .Values.haproxyIngress.image.tag }}
+        args:
+{{- if eq .Values.haproxyIngress.rbac.namespaceRestricted true }}
+        - --watch-namespace=$(POD_NAMESPACE)
+        - --force-namespace-isolation=true
+        - --disable-node-list=true
+{{- end }}
+        - --default-backend-service=$(POD_NAMESPACE)/{{ template "commons-global.fullname" . }}-backend
+        - --configmap=$(POD_NAMESPACE)/{{ template "commons-global.fullname" . }}
+        - --default-ssl-certificate=$(POD_NAMESPACE)/{{ template "commons-global.fullname" . }}
+        - --sort-backends
+        - --ingress-class={{ .Values.haproxyIngress.ingressClass }}
+        - --reload-strategy=native
+        ports:
+        - name: http
+{{- if .Values.haproxyIngress.service.httpTargetPort }}
+          containerPort: {{ .Values.haproxyIngress.service.httpTargetPort }}
+{{- else }}
+          containerPort: 8080
+{{- end}}
+        - name: https
+{{- if .Values.haproxyIngress.service.httpsTargetPort }}
+          containerPort: {{ .Values.haproxyIngress.service.httpsTargetPort }}
+{{- else }}
+          containerPort: 8443
+{{- end}}
+        - name: stat
+          containerPort: 1936
+        - name: health
+{{- if .Values.haproxyIngress.service.healthCheckTargetPort }}
+          containerPort: {{ .Values.haproxyIngress.service.healthCheckTargetPort }}
+{{- else }}
+          containerPort: 10253
+{{- end}}
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        imagePullPolicy: {{ .Values.haproxyIngress.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.haproxyIngress.resources | indent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+      - name: prometheus-exporter
+        image: {{ .Values.haproxyIngress.sidecar.haproxyMetricsExporter.image.repository }}:{{ .Values.haproxyIngress.sidecar.haproxyMetricsExporter.image.tag }}
+        args:
+          - --haproxy.scrape-uri=http://127.0.0.1:1936/haproxy?stats;csv
+        ports:
+          - name: metrics-port
+            containerPort: 9101
+        imagePullPolicy: {{ .Values.haproxyIngress.sidecar.haproxyMetricsExporter.image.pullPolicy }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: metrics-port
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+{{ toYaml .Values.haproxyIngress.sidecar.haproxyMetricsExporter.resources | indent 10 }}
+{{- if eq .Values.haproxyIngress.sidecar.fluentBitSideCar.enabled true}}
+      - name: fluent-bit
+        image: {{ .Values.haproxyIngress.sidecar.fluentBitSideCar.image.repository }}:{{ .Values.haproxyIngress.sidecar.fluentBitSideCar.image.tag }}
+        imagePullPolicy: {{ .Values.haproxyIngress.sidecar.fluentBitSideCar.image.pullPolicy }}
+        ports:
+          - name: fluentbit-port
+            containerPort: 7700
+        livenessProbe:
+          httpGet:
+            path: /
+            port: fluentbit-port
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: fluentbit-port
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+{{ toYaml .Values.haproxyIngress.sidecar.fluentBitSideCar.resources | indent 10 }}
+        volumeMounts:
+        - name: fluent-bit-configmap-volume
+          mountPath: /fluent-bit/etc/fluent-bit.conf
+          subPath: fluent-bit.conf
+        - name: fluent-bit-service-config-volume
+          mountPath: /fluent-bit/etc/service.conf
+          subPath: service.conf
+        - name: fluent-bit-output-config-volume
+          mountPath: /fluent-bit/etc/output.conf
+          subPath: output.conf
+        - name: fluent-bit-input-config-volume
+          mountPath: /fluent-bit/etc/input.conf
+          subPath: input.conf
+        - name: fluent-bit-filter-config-volume
+          mountPath: /fluent-bit/etc/filter.conf
+          subPath: filter.conf
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: HELM_RELEASE_NAME
+          value: {{ .Release.Name }}
+        - name: SERVICE
+          value: {{ template "commons-global.fullname" . }}
+      securityContext:
+{{ toYaml .Values.haproxyIngress.securityContext | indent 10 }}
+      volumes:
+        - name: fluent-bit-configmap-volume
+          configMap:
+            name: {{ template "commons-global.fullname" . }}-fluentbit
+            items:
+            - key: fluent-bit.conf
+              path: fluent-bit.conf
+              mode: 420
+        - name: fluent-bit-service-config-volume
+          configMap:
+            name: {{ template "commons-global.fullname" . }}-fluentbit
+            items:
+            - key: service.conf
+              path: service.conf
+              mode: 420
+        - name: fluent-bit-output-config-volume
+          configMap:
+            name: {{ template "commons-global.fullname" . }}-fluentbit
+            items:
+            - key: output.conf
+              path: output.conf
+              mode: 420
+        - name: fluent-bit-input-config-volume
+          configMap:
+            name: {{ template "commons-global.fullname" . }}-fluentbit
+            items:
+            - key: input.conf
+              path: input.conf
+              mode: 420
+        - name: fluent-bit-filter-config-volume
+          configMap:
+            name: {{ template "commons-global.fullname" . }}-fluentbit
+            items:
+            - key: filter.conf
+              path: filter.conf
+              mode: 420
+{{- end}}
+      nodeSelector:
+{{ toYaml .Values.haproxyIngress.nodeSelector | indent 8 }}
+      affinity:
+{{ toYaml .Values.haproxyIngress.affinity | indent 8 }}
+{{- end}}

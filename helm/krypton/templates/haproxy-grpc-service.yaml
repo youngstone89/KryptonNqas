@@ -1,0 +1,27 @@
+{{- if eq .Values.haproxyGrpc.enable true}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "krypton.fullname" . }}-haproxy-grpc
+  labels:
+    app: {{ template "krypton.name" . }}-haproxy-grpc
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "krypton.fullname" . }}
+  annotations:
+{{ toYaml .Values.haproxyGrpc.service.annotations | indent 4 }}
+spec:
+  ports:
+  - name: haproxy-grpc
+    port: {{ .Values.haproxyGrpc.service.port }}
+    protocol: TCP
+    targetPort: grpc
+{{- if eq .Values.haproxyGrpc.service.type "NodePort" }}
+    nodePort: {{ .Values.haproxyGrpc.service.nodePort }}
+{{- end}}
+  selector:
+    app: {{ template "krypton.name" . }}-haproxy-grpc
+    release: {{ .Release.Name }}
+  type: {{ .Values.haproxyGrpc.service.type }}
+{{- end }}

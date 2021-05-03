@@ -1,0 +1,28 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.kryptonRouter.networkPolicy.enabled true) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "commons-global.fullname" . }}-krypton-router-netpol
+  annotations:
+{{ toYaml .Values.commons.networkPolicy.annotations | indent 4 }}   
+  labels:
+    app: {{ template "commons-global.name" . }}-krypton-router-netpol
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    pool: {{ template "commons-global.name" . }}-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: krypton-router
+{{- if .Values.commons.kryptonRouter.networkPolicy.ingress }}      
+  ingress:
+  {{ toYaml .Values.commons.kryptonRouter.networkPolicy.ingress | nindent 2 }}
+{{- end}}    
+
+{{- if .Values.commons.kryptonRouter.networkPolicy.egress }}
+  egress:
+  {{ toYaml .Values.commons.kryptonRouter.networkPolicy.egress | nindent 2 }}
+{{- end}}
+  
+{{- end}}

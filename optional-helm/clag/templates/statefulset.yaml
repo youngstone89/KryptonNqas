@@ -1,0 +1,306 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "clag.fullname" . }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}    
+  annotations:
+{{ toYaml .Values.statefulset.annotations | indent 4 }}   
+spec:
+  serviceName: {{ template "clag.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: "Parallel"
+  selector:
+    matchLabels:
+      app: {{ template "clag.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "clag.name" . }}
+        release: {{ .Release.Name }}
+        {{- if .Values.statefulset.podLabels }} 
+        {{ toYaml .Values.statefulset.podLabels | nindent 8 }}     
+        {{- end }}        
+{{- if eq .Values.networkPolicy.enabled true}}
+        minio-client: "true"
+{{- end }}        
+    spec:
+{{- if .Values.securityContext }} 
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}
+{{- end }}
+      containers:
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+        - name: fluentbit
+          image: {{ .Values.fluentBitSideCar.image.repository }}:{{ .Values.fluentBitSideCar.image.tag }}
+          imagePullPolicy: {{ .Values.fluentBitSideCar.image.pullPolicy }}
+          resources:
+{{ toYaml .Values.fluentBitSideCar.resources | indent 12 }}
+          ports:
+          - name: fluentbit-port
+            containerPort: 7700
+          livenessProbe:
+            httpGet:
+              path: /
+              port: fluentbit-port
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: fluentbit-port
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          volumeMounts:
+          - name: logs-volume
+            mountPath: /app/logs
+          - name: fluent-bit-configmap-volume
+            mountPath: /fluent-bit/etc/fluent-bit.conf
+            subPath: fluent-bit.conf
+          - name: fluent-bit-parser-config-volume
+            mountPath: /fluent-bit/etc/parser.conf
+            subPath: parser.conf
+          - name: fluent-bit-kvs-lua-volume
+            mountPath: /fluent-bit/etc/kvs.lua
+            subPath: kvs.lua
+          - name: fluent-bit-service-config-volume
+            mountPath: /fluent-bit/etc/service.conf
+            subPath: service.conf
+          - name: fluent-bit-output-config-volume
+            mountPath: /fluent-bit/etc/output.conf
+            subPath: output.conf
+          - name: fluent-bit-input-config-volume
+            mountPath: /fluent-bit/etc/input.conf
+            subPath: input.conf
+          - name: fluent-bit-filter-config-volume
+            mountPath: /fluent-bit/etc/filter.conf
+            subPath: filter.conf
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MY_POD_SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          - name: IMAGE
+            value: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          - name: HELM_RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: SERVICE
+            value: {{ template "clag.fullname" . }}
+{{- end}}
+        - name: {{ template "clag-container.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: NODE_ENV
+            value: {{ .Values.configFileName }}
+          - name: configmap-checksum
+            value: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MY_RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: MY_NAMESPACE_NAME
+            value: {{ .Release.Namespace }}
+{{- if .Values.environment}}   
+{{ toYaml .Values.environment | indent 10 }}      
+{{- end }}            
+          ports:
+{{- if eq .Values.http.enabled true}}
+            - containerPort: {{ .Values.http.port }}
+              name: http
+              protocol: TCP
+{{- end }}
+{{- if eq .Values.https.enabled true}}
+            - containerPort: {{ .Values.https.port }}
+              name: https
+              protocol: TCP
+{{- end }}
+          livenessProbe:
+            httpGet:
+{{- if eq .Values.http.enabled true}}
+              path: /IsAlive
+              port: http
+{{- else }}
+              path: /IsAlive
+              port: https
+              scheme: HTTPS
+{{- end }}
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 15
+          readinessProbe:
+            httpGet:
+{{- if eq .Values.http.enabled true}}
+              path: /IsReady
+              port: http
+{{- else }}
+              path: /IsReady
+              port: https
+              scheme: HTTPS
+{{- end }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 15
+          volumeMounts:
+            - name: clag-secret-volume-ssl
+              mountPath: /app/config/certificates
+            - name: data-volume
+              mountPath: /app/data
+{{- if eq .Values.log.enableFile true }}
+            - name: logs-volume
+              mountPath: /app/logs
+{{- end }}
+            - name: clag-configmap-volume
+              mountPath: /app/config/{{ .Values.configFileName }}.yaml
+              subPath: {{ .Values.configFileName }}.yaml
+            - name: clag-runtime-configmap-volume
+              mountPath: /app/config/runtimeconfig
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+        - name: clag-secret-volume-ssl
+          secret:
+{{- if .Values.https.secretName}}
+            secretName: {{ .Values.https.secretName }}
+{{- else }}
+            secretName: {{ template "clag.fullname" . }}-ssl
+{{- end }}
+        - name: clag-configmap-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: {{ .Values.configFileName }}.yaml
+              path: {{ .Values.configFileName }}.yaml
+              mode: 420
+        - name: clag-runtime-configmap-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}-runtimeconfig
+            items:
+            - key: runtime{{ .Values.configFileName }}.yaml
+              path: runtime{{ .Values.configFileName }}.yaml
+              mode: 420
+{{- if eq .Values.log.enableFile true }}
+        - name: logs-volume
+{{- if .Values.log.hostMountPath }}
+          hostPath:
+            path: {{.Values.log.hostMountPath }}
+            type: Directory
+{{- else }}
+          emptyDir: {}
+{{- end }}
+{{- end }}
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+        - name: fluent-bit-configmap-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: fluent-bit.conf
+              path: fluent-bit.conf
+              mode: 420
+        - name: fluent-bit-kvs-lua-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: kvs.lua
+              path: kvs.lua
+              mode: 420
+        - name: fluent-bit-parser-config-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: parser.conf
+              path: parser.conf
+              mode: 420
+        - name: fluent-bit-service-config-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: service.conf
+              path: service.conf
+              mode: 420
+        - name: fluent-bit-output-config-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: output.conf
+              path: output.conf
+              mode: 420
+        - name: fluent-bit-input-config-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: input.conf
+              path: input.conf
+              mode: 420
+        - name: fluent-bit-filter-config-volume
+          configMap:
+            name: {{ template "clag.fullname" . }}
+            items:
+            - key: filter.conf
+              path: filter.conf
+              mode: 420
+{{- end }}
+{{- if not .Values.persistence.enabled }}
+        - name: data-volume
+          emptyDir: {}
+{{- end }}
+{{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data-volume
+      spec:
+        accessModes: [ {{ .Values.persistence.accessMode | quote }} ]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+{{- end }}

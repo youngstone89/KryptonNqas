@@ -1,0 +1,7 @@
+apiVersion: v1
+appVersion: 2.0.0-gl559016
+description: A global Helm chart for cloud native commons
+maintainers:
+- name: nuance-coretech
+name: commons-global
+version: 2.0.0-gl559016

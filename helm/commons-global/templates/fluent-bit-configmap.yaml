@@ -1,0 +1,26 @@
+{{- if eq .Values.haproxyIngress.sidecar.fluentBitSideCar.enabled true }}
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "commons-global.fullname" . }}-fluentbit
+  labels:
+    app: {{ template "commons-global.name" . }}-fluentbit
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  fluent-bit.conf: |-
+        @INCLUDE service.conf
+        @INCLUDE input.conf
+        @INCLUDE filter.conf
+        @INCLUDE output.conf
+  service.conf:
+{{ toYaml .Values.haproxyIngress.sidecar.fluentBitSideCar.service | indent 2 }}
+  input.conf:
+{{ toYaml .Values.haproxyIngress.sidecar.fluentBitSideCar.input | indent 2 }}
+  filter.conf:
+{{ toYaml .Values.haproxyIngress.sidecar.fluentBitSideCar.filter | indent 2 }}
+  output.conf:
+{{ toYaml .Values.haproxyIngress.sidecar.fluentBitSideCar.output | indent 2 }}
+{{- end }}

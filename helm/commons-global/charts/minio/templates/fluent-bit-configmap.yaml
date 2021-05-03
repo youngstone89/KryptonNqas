@@ -1,0 +1,28 @@
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "minio.fullname" . }}-fluentbit
+  labels:
+    app: {{ template "minio.name" . }}-fluentbit
+    chart: {{ template "minio.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  fluent-bit.conf: |-
+        @INCLUDE service.conf
+        @INCLUDE input.conf
+        @INCLUDE filter.conf
+        @INCLUDE output.conf
+  service.conf:
+{{ toYaml .Values.fluentBitSideCar.service | indent 2 }}
+  input.conf:
+{{ toYaml .Values.fluentBitSideCar.input | indent 2 }}
+  filter.conf:
+{{ toYaml .Values.fluentBitSideCar.filter | indent 2 }}
+  output.conf:
+{{ toYaml .Values.fluentBitSideCar.output | indent 2 }}
+  minioParser.conf:
+{{ toYaml .Values.fluentBitSideCar.minioParser | indent 2 }}
+{{- end }}

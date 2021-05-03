@@ -1,0 +1,77 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "nqas.fullname" . }}
+  annotations:
+{{ toYaml .Values.configmap.annotations | indent 4 }}
+  labels:
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}    
+data:
+  {{ .Values.configFileName }}.yaml: |- 
+      # do not remove this line: it is needed to skip possibly added UTF8 BOM.
+      engineUUID: NQAS
+      defaultHostName:
+      defaultNetworkInterface:
+        name:
+        family: 'IPv4'
+      http:
+{{- if eq .Values.http.enable true}}
+        port:  {{ .Values.http.port }}
+{{- else }}
+        port:
+{{- end }}
+        host:
+      https:
+{{- if eq .Values.https.enable true}}
+        port: {{ .Values.https.port }}
+{{- else }}
+        port: 
+{{- end }}
+        host:
+{{- if .Values.https.sslConfig }}
+{{ toYaml .Values.https.sslConfig | indent 8 }}
+{{- end }}
+{{ toYaml .Values.config | indent 6 }}
+      log:
+        level: {{ .Values.diagnosticLogs.level }}
+        audioLogLevel: {{ .Values.diagnosticLogs.audioLogLevel }}
+        maxSize: {{ .Values.diagnosticLogs.maxSize }}
+        maxFiles: {{ .Values.diagnosticLogs.maxFiles }}
+        enableConsole: true
+        colorizeConsole: false
+        enableFile: {{ .Values.diagnosticLogs.enableFile }}
+        timestamp: {{ .Values.diagnosticLogs.timestamp }}
+        # the following parameters are reserved for Nuance use only.
+{{- if .Values.diagnosticLogs.addonsLevel }}
+        addonsLevel: {{ .Values.diagnosticLogs.addonsLevel }}
+{{- else }}
+        addonsLevel: 'warn'
+{{- end }}
+###########################################################################################################################################################################
+{{- if .Values.fluentBitSideCar }}
+  fluent-bit.conf: |-
+        @INCLUDE service.conf
+        @INCLUDE input.conf
+        @INCLUDE filter.conf
+        @INCLUDE output.conf
+  service.conf:
+{{ toYaml .Values.fluentBitSideCar.service | indent 2 }}
+  input.conf:
+{{ toYaml .Values.fluentBitSideCar.input | indent 2 }}
+  filter.conf:
+{{ toYaml .Values.fluentBitSideCar.filter | indent 2 }}
+  output.conf:
+{{ toYaml .Values.fluentBitSideCar.output | indent 2 }}
+  parser.conf:
+{{ toYaml .Values.fluentBitSideCar.parser | indent 2 }}
+  kvs.lua:
+{{ toYaml .Values.fluentBitSideCar.kvslua | indent 2 }}
+{{- end }}
+

@@ -1,0 +1,68 @@
+#This config should be used when running CLAG as a docker container 
+dataDir: /app/data
+engineUUID: 
+bundleMetaAndAudioData: false
+shutdownTimeout: 10000
+useZipCommand: false
+audioFileNameRegex: [(.*)(\$)(.*), (.*)(\.)(.*)]
+
+http:
+  port: 8080
+
+https:
+    port: 
+    host:
+    keyFile: './keys/server.key'
+    certFile: './keys/server.crt'
+    passphrase:
+    requestCert: false
+    rejectUnauthorized: true
+    caCertificates: []
+
+log:
+    level: 'status'
+    colorizeConsole: true
+    enableConsole: true
+    timestamp: true 
+    filelogging:
+      enableFile: true
+      maxSize: 5242880
+      maxFiles: 5
+      logsDir: '/app/logs'
+  
+bucketFolders:
+  dataPackId: dataPack.id
+  applicationId: clientData.applicationName
+
+staleObjects:
+  cronExpression: '*/10 * * * *'
+  stalePeriodInHours: 5
+
+backPressureConfig:
+  maxUploadRetryCount: 5
+  maxArchiveRetryCount: 5
+  maxLocalDirectories: 25
+
+collectionDirSealConfig:
+  metadataCountThreshold: 1000
+  enableDirSizeAudit: false
+  maxSizeInMB: 90
+  sizeAuditCronExpression: '*/15 * * * *'
+
+catalogKeys:
+  - clientData.applicationName
+
+minioClient:
+  url: <minio_url/aws_s3_url >
+  bucketName: krypton-call-logs
+  bucketRegion: us-east-1
+  accessKey: <obfuscated_accessKey>
+  secretKey: <obfuscated_secretKey>
+  rejectUnauthorized: false
+  keyFile: 
+  certFile: 
+  passphrase:
+  servername: 
+  caCertificates: []
+  iamRole:
+  #iamTimeout:

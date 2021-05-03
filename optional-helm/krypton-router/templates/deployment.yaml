@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "krypton-router.fullname" . }}
+  labels:
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 4 }}
+spec:
+  replicas: {{ default 1 .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "krypton-router.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        engine: krypton-router
+        app: {{ template "krypton-router.name" . }}
+        release: {{ .Release.Name }}
+        poolname: {{ .Release.Name }}  
+{{- if .Values.deployment.podLabels }}        
+       {{- toYaml .Values.deployment.podLabels | nindent 8 }}      
+{{- end }}    
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+{{- if .Values.deployment.podAnnotations }} 
+        {{ toYaml .Values.deployment.podAnnotations | nindent 8 }}     
+{{- end }}
+    spec:
+      serviceAccountName: {{ include "krypton-router.serviceAccountName" . }}
+      containers:
+        - name: {{ template "krypton-router-container-router.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: NODE_ENV
+              value: krypton-router
+            - name: NODE_EXTRA_CA_CERTS
+              value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            - name: MY_SVC_NAME
+              value: {{ include "krypton-router.fullname" . }}
+            - name: MY_RELEASE_NAME
+              value: {{ .Release.Name }}
+            - name: MY_NAMESPACE_NAME
+              value: {{ .Release.Namespace }}              
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - name: http2
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ regexFind ":\\d+" .Values.config.metrics.scrapeURL | trimPrefix ":" }}
+              protocol: TCP
+          {{- if .Values.service.livenessProbe.enabled}}
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: {{ .Values.service.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.service.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.service.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.service.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.service.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.service.readinessProbe.enabled}}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.service.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.service.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.service.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.service.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.service.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: router-configmap-volume
+              mountPath: /router/config/krypton-router.yaml
+              subPath: krypton-router.yaml
+        - name: {{ template "krypton-router-container-redis.name" . }}
+          image: {{ .Values.redisImage }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [ redis-server ]
+          args:
+            - "--save"
+            - ""
+            - "--appendonly"
+            - "no"
+            - "--bind"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ .Values.config.redisClient.port }}"
+          ports:
+            - name: redis
+              containerPort: {{ .Values.config.redisClient.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.config.redisClient.resources | nindent 12 }}              
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test PONG = "$(timeout -s 9 5 redis-cli ping)"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: router-configmap-volume
+          configMap:
+            name:  {{ include "krypton-router.fullname" . }}
+            items:
+            - key: krypton-router.yaml
+              path: krypton-router.yaml
+              mode: 420

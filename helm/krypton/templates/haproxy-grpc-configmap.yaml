@@ -1,0 +1,40 @@
+{{- if eq .Values.haproxyGrpc.enable true}}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "krypton.fullname" . }}-haproxy-grpc-configmap
+  annotations:
+{{ toYaml .Values.haproxyGrpc.configmap.annotations | indent 4 }}   
+  labels:
+    app: {{ template "krypton.name" . }}-haproxy-grpc-configmap
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  haproxy.cfg: |-
+        global
+          stats socket :::9000 v4v6 mode 660 level admin
+          daemon
+{{ .Values.haproxyGrpc.config.defaults | indent 8 }}         
+{{ .Values.haproxyGrpc.config.dnsResolver | indent 8 }}
+          
+        
+        frontend grpc-frontend
+          option http-use-htx 
+          bind :::80 v4v6 proto h2
+          mode http
+          default_backend grpc-server  
+        
+         backend grpc-server
+          balance roundrobin   
+          mode http
+          option http-use-htx
+          server-template srv {{add .Values.maxReplicas 10 }} _kr-svc-grpc._tcp.{{ template "krypton.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local resolvers k8s proto h2 maxconn 1 check
+          
+          ###### Monitor URI
+          frontend healthz
+              bind :::10253 v4v6
+              mode http
+              monitor-uri /healthz
+              no log
+{{- end }}

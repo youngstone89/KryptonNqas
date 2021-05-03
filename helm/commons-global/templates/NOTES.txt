@@ -1,0 +1,13 @@
+
+Commons Global pool created with name {{ .Release.Name }}
+
+Commons Global pool is deployed as {{ .Release.Name }} release in helm.
+
+To get the deployment manifests for {{ .Release.Name }} use below helm command.
+helm get {{ .Release.Name }}
+
+To upgrade {{ .Release.Name }} use below helm command
+helm upgrade {{ .Release.Name }} /PATH/commons-global
+
+To delete and purge {{ .Release.Name }} use below helm command
+helm del --purge {{ .Release.Name }}

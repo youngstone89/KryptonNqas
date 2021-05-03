@@ -1,0 +1,37 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "commons-global.fullname" . }}-backend
+  labels:
+    app: {{ template "commons-global.name" . }}-backend
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "commons-global.name" . }}-backend
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "commons-global.name" . }}-backend
+        release: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+{{ toYaml .Values.defaultBackend.imagePullSecrets | indent 8 }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      containers:
+      - name: ingress-default-backend
+        image: {{ .Values.defaultBackend.image.repository }}:{{ .Values.defaultBackend.image.tag }}
+        ports:
+        - containerPort: 8080
+        imagePullPolicy: {{ .Values.defaultBackend.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.defaultBackend.resources | indent 10 }}
+{{- end }}

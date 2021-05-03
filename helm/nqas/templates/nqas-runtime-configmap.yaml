@@ -1,0 +1,18 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "nqas.fullname" . }}-runtime
+  annotations:
+{{ toYaml .Values.runtimeConfigmap.annotations | indent 4 }}
+  labels:
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  runtime{{ .Values.configFileName }}.yaml: |- 
+    # do not remove this line: it is needed to skip possibly added UTF8 BOM.
+    log:
+        level: {{ .Values.runtimeConfig.log.level | quote }}
+

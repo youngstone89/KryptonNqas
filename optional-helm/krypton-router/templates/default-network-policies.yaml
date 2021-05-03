@@ -1,0 +1,26 @@
+{{- if eq .Values.networkPolicy.defaultEnabled true}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "krypton-router.fullname" . }}-netpol-default
+  annotations:
+{{ toYaml .Values.networkPolicy.annotations | indent 4 }}
+  labels:
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "krypton-router.name" . }}
+      release: {{ .Release.Name }}
+  ingress: []
+  egress:
+  # allow only DNS resolution
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP 
+{{- end}}

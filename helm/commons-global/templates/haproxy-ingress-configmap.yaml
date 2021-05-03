@@ -1,0 +1,27 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "commons-global.fullname" . }}
+  labels:
+    app: {{ template "commons-global.name" . }}
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  http-port: "8080"
+  https-port: "8443"
+  dynamic-scaling: "true"
+  drain-support: "true"
+  syslog-endpoint: {{ .Values.haproxyIngress.syslogEndpoint }}
+  backend-server-slots-increment: "20"
+  max-connections: "5000"
+  timeout-connect: 5s
+  timeout-http-request: 5s
+  timeout-keep-alive: 1m
+  timeout-queue: 5s
+  timeout-server: 50s
+  timeout-server-fin: 50s
+  timeout-tunnel: 3600s
+{{- end}}

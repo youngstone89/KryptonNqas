@@ -1,0 +1,59 @@
+{{- if eq .Values.networkPolicy.enabled true}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "clag.fullname" . }}-netpol
+  annotations:
+{{ toYaml .Values.networkPolicies.annotations | indent 4 }}
+  labels:
+    app: {{ template "clag.name" . }}
+    chart: {{ template "clag.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{ template "clag.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ template "clag.name" . }}
+      release: {{ .Release.Name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+{{- if eq .Values.networkPolicy.monitoring.prometheus.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.prometheus.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.prometheus.podSelector | indent 8 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.krypton.enabled true}}
+  - from:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.krypton.namespaceSelector | indent 8 }}
+      podSelector:    
+{{ toYaml .Values.networkPolicy.krypton.podSelector | indent 10 }}
+{{- end }}
+  egress: 
+{{- if eq .Values.networkPolicy.monitoring.pushgateway.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.pushgateway.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.pushgateway.podSelector | indent 10 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.monitoring.jaeger.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.monitoring.jaeger.namespaceSelector | indent 8 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.monitoring.jaeger.podSelector | indent 10 }}
+{{- end }}
+{{- if eq .Values.networkPolicy.minio.enabled true}}
+  - to:
+    - namespaceSelector:
+{{ toYaml .Values.networkPolicy.minio.namespaceSelector | indent 10 }}
+      podSelector:
+{{ toYaml .Values.networkPolicy.minio.podSelector | indent 10 }}
+{{- end }}
+{{- end }}

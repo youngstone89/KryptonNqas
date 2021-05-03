@@ -1,0 +1,29 @@
+{{- if eq .Values.prometheusOperator.enable true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "nqas.fullname" . }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+  labels:
+{{ toYaml .Values.prometheusOperator.serviceMonitor.labels | indent 4 }}
+    app: {{ template "nqas.name" . }}
+    chart: {{ template "nqas.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "nqas.name" . }}
+      release: {{ .Release.Name }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+{{- if eq .Values.http.enable true}}
+  - port: nqas-svc-http
+{{- else}}
+  - port: nqas-svc-https
+{{- end}}
+{{ toYaml .Values.prometheusOperator.serviceMonitor.config | indent 4 }}
+{{- end}}

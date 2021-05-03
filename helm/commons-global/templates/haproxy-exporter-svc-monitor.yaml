@@ -1,0 +1,27 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+{{- if eq .Values.haproxyIngress.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "commons-global.fullname" . }}
+  labels:
+{{ toYaml .Values.haproxyIngress.prometheusOperator.serviceMonitor.labels | indent 4 }}
+    app: {{ template "commons-global.name" . }}
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.haproxyIngress.prometheusOperator.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "commons-global.name" . }}-exporter
+      release: {{ .Release.Name }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+  - port: metrics-port
+{{ toYaml .Values.haproxyIngress.prometheusOperator.serviceMonitor.config | indent 4 }}
+{{- end}}
+{{- end}}

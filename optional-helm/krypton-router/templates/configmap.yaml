@@ -1,0 +1,17 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "krypton-router.fullname" . }}
+  labels:
+    app: {{ template "krypton-router.name" . }}
+    chart: {{ template "krypton-router.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}       
+  annotations:
+{{ toYaml .Values.configmap.annotations | indent 4 }}
+data:
+  krypton-router.yaml: |-
+{{ toYaml .Values.config | indent 4 }}

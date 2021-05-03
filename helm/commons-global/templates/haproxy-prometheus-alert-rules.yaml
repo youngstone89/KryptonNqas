@@ -1,0 +1,27 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+{{- if eq .Values.haproxyIngress.prometheusOperator.enabled true}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "commons-global.fullname" . }}
+  labels:
+{{ toYaml .Values.haproxyIngress.prometheusOperator.prometheusRulesLabels | indent 4 }}
+    app: {{ template "commons-global.name" . }}
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.haproxyIngress.prometheusOperator.namespace }}
+spec:
+  groups:
+    - name: ./haproxy-alerting.rules-{{ .Release.Name }}
+      rules:
+      - alert: haproxy-invalid_requests_default_backend-{{ .Release.Name }}
+        expr: sum by (service) (increase(haproxy_backend_http_responses_total{backend="httpback-default-backend",code="4xx",service="{{ template "commons-global.fullname" . }}-exporter"}[{{ .Values.haproxyIngress.alertConfigurations.invalidRequestsDefaultBackend.timeRange }}]))  > {{ .Values.haproxyIngress.alertConfigurations.invalidRequestsDefaultBackend.countThreshold }}
+        for: 10s
+        labels:
+          severity: minor
+        annotations:
+          summary: Invalid URL request received by Haproxy ingress. Request should not get routed to default backend of haproxy. This means clients are using incorrect URL.
+{{- end}}
+{{- end}}

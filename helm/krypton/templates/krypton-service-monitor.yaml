@@ -1,0 +1,31 @@
+{{- if eq .Values.prometheusOperator.enable true}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "krypton.fullname" . }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+  labels:
+{{ toYaml .Values.prometheusOperator.serviceMonitor.labels | indent 4 }}
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+{{- if eq .Values.http.enable true}}
+  - port: kr-svc-http
+{{- else}}
+  - port: kr-svc-https
+{{- end}}
+{{- if eq .Values.fluentd.enabled true }}
+  - port: kr-fluentd-metrics-port
+{{- end}}
+{{ toYaml .Values.prometheusOperator.serviceMonitor.config | indent 4 }}
+{{- end}}

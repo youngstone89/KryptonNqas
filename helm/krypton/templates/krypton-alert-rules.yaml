@@ -1,0 +1,567 @@
+{{- define "alert-rules" -}}
+groups:
+- name: ./{{ .Release.Name }}-alerting.rules
+  rules:
+  
+  #1-------------------------------
+  - alert: kr-grpc_failed_response_total
+    annotations:
+      summary: "Failed response were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.grpcFailedResponse.timeRange }}. If the problem persists, collect diagnotics logs and escalate to support." 
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.grpcFailedResponse.timeRange }}], Threshold:  {{ .Values.alertConfigurations.grpcFailedResponse.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.grpcFailedResponse.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'  
+    labels:
+      severity: info
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}  
+    for: {{ .Values.alertConfigurations.grpcFailedResponse.timeInterval }} 
+    expr: >-
+      sum by(service) (
+        increase (
+          kr_grpc_response_code{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}", code=~"5.."}
+            [{{ .Values.alertConfigurations.grpcFailedResponse.timeRange }}]
+        )
+      )
+      /
+      sum by(service) (
+        increase(
+          kr_grpc_response_code{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}", code=~"[2-5].."}
+            [{{ .Values.alertConfigurations.grpcFailedResponse.timeRange }}]
+        )
+      ) * 100
+      >= {{ .Values.alertConfigurations.grpcFailedResponse.percentageThreshold }}
+  
+  #2-------------------------------
+  - alert: kr-failed_commands
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Failed commands were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.failedCommands.timeRange }}. If the problem persists, collect diagnotics logs and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.failedCommands.timeRange }}], Threshold:  {{ .Values.alertConfigurations.failedCommands.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.failedCommands.timeInterval }}"  
+      now_value: '{{ "{{" }} $value {{ "}}" }}'    
+    for: {{ .Values.alertConfigurations.failedCommands.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_command_failed_response_total{service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.failedCommands.timeRange }}]
+            )
+          )
+        ) 
+        / 
+        sum by(service) (
+          round ( 
+            increase (
+              kr_command_request_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.failedCommands.timeRange }}]
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.failedCommands.percentageThreshold }}
+  
+  #3-------------------------------
+  - alert: kr-protocol_failure
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}       
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}            
+    annotations:
+      summary: "Protocol failures were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.protocolFailure.timeRange }}. Verify Krypton client settings. If the problem persists, collect diagnotics logs and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.protocolFailure.timeRange }}], Threshold:  {{ .Values.alertConfigurations.protocolFailure.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.protocolFailure.timeInterval }}"    
+      now_value: '{{ "{{" }} $value {{ "}}" }}' 
+    for: {{ .Values.alertConfigurations.protocolFailure.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase ( 
+              kr_command_protocol_failure_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.protocolFailure.timeRange }}]
+              )
+            )
+        ) 
+        / 
+        sum by(service) (
+          round (
+            increase ( 
+              kr_command_request_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.protocolFailure.timeRange }}]
+              )
+            )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.protocolFailure.percentageThreshold }}
+  
+  #4-------------------------------
+  - alert: kr-recognition_object_load_failure
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}       
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary: "Load recognition object failures were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeRange }}. Verify if the resource being loaded is a valid format and accessible via the indicated URL, if any."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeRange }}], Threshold:  {{ .Values.alertConfigurations.recognitionObjectLoadFailure.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeInterval }}" 
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_command_recognition_object_load_failure_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeRange }}]
+              )
+          )
+        )
+        /
+        sum by(service) (
+          round (
+            increase (
+              kr_command_recognition_object_load_request_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.recognitionObjectLoadFailure.timeRange }}]
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.recognitionObjectLoadFailure.percentageThreshold }}
+
+  #5-------------------------------
+  - alert: kr-create_session_failure
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary:  "Create session failures were observed for {{ "{{" }} $labels.service {{ "}}" }} in last {{ .Values.alertConfigurations.createSessionFailure.timeRange }}. If the problem persists, collect diagnotics logs and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.createSessionFailure.timeRange }}], Threshold:  {{ .Values.alertConfigurations.createSessionFailure.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.createSessionFailure.timeInterval }}"   
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.createSessionFailure.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_command_create_session_failure_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.createSessionFailure.timeRange }}]
+            )
+          )
+        ) 
+        /
+        sum by(service) (
+          round (
+            increase (
+              kr_command_create_session_request_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.createSessionFailure.timeRange }}]
+                )
+            )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.createSessionFailure.percentageThreshold }}
+ 
+  #6-------------------------------
+  - alert: haproxy-5xx_response
+    labels:
+      severity: error
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}      
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary: "Internal server error was observed in haproxy backend {{ "{{" }} $labels.backend {{ "}}" }} and Krypton service {{ template "krypton.fullname" . }} in last {{ .Values.alertConfigurations.haproxy5xxResponse.timeRange }}. This error can occur if there are no endpoints to serve requests. If problem persists even with endpoints available, collect diagnotics logs and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.haproxy5xxResponse.timeRange }}], Threshold:  {{ .Values.alertConfigurations.haproxy5xxResponse.countThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.haproxy5xxResponse.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.haproxy5xxResponse.timeInterval }}
+    {{- if eq .Values.http.enable true}}
+    expr: >-
+      (
+        sum by (service)(
+          round (
+            increase (
+              haproxy_backend_http_responses_total{backend="{{ .Release.Namespace }}-{{ template "krypton.fullname" . }}-kr-svc-http",code="5xx"}
+                [{{ .Values.alertConfigurations.haproxy5xxResponse.timeRange }}]
+            )
+          )
+        )
+      ) 
+      > {{ .Values.alertConfigurations.haproxy5xxResponse.countThreshold }}
+    {{- else if eq .Values.https.enable true}}
+    expr: >-
+      (
+        sum by (service)(
+          round (
+            increase (
+              haproxy_backend_http_responses_total{backend="{{ .Release.Namespace }}-{{ template "krypton.fullname" . }}-kr-svc-https",code="5xx"}
+                [{{ .Values.alertConfigurations.haproxy5xxResponse.timeRange }}]
+            )
+          )
+        )
+      )
+      > {{ .Values.alertConfigurations.haproxy5xxResponse.countThreshold }}
+    {{- end }}     
+
+  #7-------------------------------
+  - alert: kr-oov_limit_failure
+    labels:
+      severity: warning
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }} 
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary: "A recognition object tried to define more out-of-vocabulary words than the allowed limit for service {{ "{{" }} $labels.service {{ "}}" }}. Retrain the problematic resource, removing some OOV. If the problem persists, collect diagnostics logs and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.oovLimitFailure.timeRange }}], Threshold: {{ .Values.alertConfigurations.oovLimitFailure.countThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.oovLimitFailure.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.oovLimitFailure.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_recognition_object_oov_limit_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.oovLimitFailure.timeRange }}]
+            )
+          )
+        )
+      ) 
+      > {{ .Values.alertConfigurations.oovLimitFailure.countThreshold }}
+      
+  #8-------------------------------
+  - alert: kr-initialization_failure
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }} 
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary: "Engine Initialization failure observed for service {{ template "krypton.fullname" . }}. Verify a valid license is configured and the host is configured with the minimum memory required to run the service. For other problems collect diagnostics logs and escalate to support."
+      alertConfig: "Threshold:  {{ .Values.alertConfigurations.initializationFailure.timeInSeconds }}, forTimeInterval: {{ .Values.alertConfigurations.initializationFailure.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.initializationFailure.timeInterval }}
+    expr: >-
+      abs (
+        time() 
+        - 
+        kr_last_engine_initialization_failure_unixtime{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      ) 
+      < {{ .Values.alertConfigurations.initializationFailure.timeInSeconds }} 
+      or 
+      abs (
+        time() 
+        - 
+        kr_last_engine_initialization_failure_unixtime{exported_namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      ) 
+      < {{ .Values.alertConfigurations.initializationFailure.timeInSeconds }}
+
+
+  #9-------------------------------
+  - alert: kr-configuration_failure
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}   
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}          
+    annotations:
+      summary: "Invalid configuration observed for service {{ template "krypton.fullname" . }}. The Krypton Service cannot start due to invalid configuration. Verify that all configuration parameters and values are valid and that all required parameters are provided in the configMap."
+      alertConfig: "Threshold: {{ .Values.alertConfigurations.configurationFailure.timeInSeconds }}, forTimeInterval: {{ .Values.alertConfigurations.configurationFailure.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}' 
+    for: {{ .Values.alertConfigurations.configurationFailure.timeInterval }}
+    expr: >-
+      abs (
+        time()
+        - 
+        kr_last_engine_configuration_failure_unixtime{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      )
+      < {{ .Values.alertConfigurations.configurationFailure.timeInSeconds }}
+      or 
+      abs (
+        time() 
+        - 
+        kr_last_engine_configuration_failure_unixtime{exported_namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      ) 
+      < {{ .Values.alertConfigurations.configurationFailure.timeInSeconds }}
+  
+  #10-------------------------------
+  - alert: kr-persistent_error_failure
+    labels:
+      severity: error
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}        
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Persistent failure observed for service {{ template "krypton.fullname" . }}. Krypton Service is automatically shutting down, as the code took an unexpected, unrecoverable path. If the problem persists, collect diagnostics logs and escalate to support."
+      alertConfig: "Threshold:  {{ .Values.alertConfigurations.persistentErrorFailure.timeInSeconds }}, forTimeInterval: {{ .Values.alertConfigurations.persistentErrorFailure.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.persistentErrorFailure.timeInterval }}
+    expr: >-
+      abs (
+        time()
+        - 
+        kr_last_engine_persistentError_failure_unixtime{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      ) 
+      < {{ .Values.alertConfigurations.persistentErrorFailure.timeInSeconds }} 
+      or 
+      abs (
+        time() 
+        - 
+        kr_last_engine_persistentError_failure_unixtime{exported_namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      )
+      < {{ .Values.alertConfigurations.persistentErrorFailure.timeInSeconds }}
+      
+  #11-------------------------------
+  - alert: kr-recognition_object_not_affecting_recognition
+    labels:
+      severity: info
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}         
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "A loaded recognition object was found to be unusable at recognition time for krypton service {{ "{{" }} $labels.service {{ "}}" }}. Recognition continued without using the object. Results may be less satisfactory than intended. Please check the integrity of problematic resource and replace it with one that is valid."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.timeRange }}], Threshold: {{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.countThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_recognition_object_not_affecting_recognition_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.timeRange }}]
+            )
+          )
+        )
+      ) 
+      > {{ .Values.alertConfigurations.recognitionObjectNotAffectingRecognition.countThreshold }}
+       
+  #12-------------------------------
+  - alert: kr-license_server_disconnection
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}      
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Krypton could not reconnect with license manager. Krypton service {{ "{{" }} $labels.service {{ "}}" }}. Verify the license manager is running on the configured host, and is accessible from the Krypton host."
+      alertConfig: "forTimeInterval:  {{ .Values.alertConfigurations.licenseServerDisconnect.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.licenseServerDisconnect.timeInterval }}      
+    expr: >-
+      sum by (service) (
+        kr_license_server_disconnection_status{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+      ) 
+      > 0
+      
+  #13-------------------------------
+  - alert: kr-call_recorder_error_response
+    labels:
+      severity: error
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}    
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Krypton service {{ "{{" }} $labels.service {{ "}}" }} is receiving error response from Call log aggregator (Clag). If problem persists, collect diagnotics logs of Clag and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.callRecorderErrorResponse.timeRange }}], Threshold: {{ .Values.alertConfigurations.callRecorderErrorResponse.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.callRecorderErrorResponse.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}' 
+    for: {{ .Values.alertConfigurations.callRecorderErrorResponse.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_error_response_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderErrorResponse.timeRange }}]
+            )
+          )
+        ) 
+        / 
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_session_connection_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderErrorResponse.timeRange }}]
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.callRecorderErrorResponse.percentageThreshold }}
+
+  #14-------------------------------
+  - alert: kr-call_recorder_timeout
+    labels:
+      severity: warning
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}        
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Krypton service {{ "{{" }} $labels.service {{ "}}" }} has encountered multiple timeouts from requests to Call log aggregator (Clag). If problem persists, collect diagnotics logs of Clag and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.callRecorderResponseTimeout.timeRange }}], Threshold: {{ .Values.alertConfigurations.callRecorderResponseTimeout.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.callRecorderResponseTimeout.timeInterval }}" 
+      now_value: '{{ "{{" }} $value {{ "}}" }}'
+    for: {{ .Values.alertConfigurations.callRecorderResponseTimeout.timeInterval }}      
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_timeout_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderResponseTimeout.timeRange }}]
+            )
+          )
+        ) 
+        / 
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_session_connection_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderResponseTimeout.timeRange }}]
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.callRecorderResponseTimeout.percentageThreshold }}
+      
+  #15-------------------------------
+  - alert: kr-call_recorder_incomplete_session
+    labels:
+      severity: warning
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}  
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Krypton service {{ "{{" }} $labels.service {{ "}}" }} has encountered multiple incomplete sessions to Call log aggregator (Clag). If problem persists, collect diagnotics logs of Clag and Krypton; and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.callRecorderIncompleteSessions.timeRange }}], Threshold: {{ .Values.alertConfigurations.callRecorderIncompleteSessions.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.callRecorderIncompleteSessions.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}' 
+    for: {{ .Values.alertConfigurations.callRecorderIncompleteSessions.timeInterval }}
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_incomplete_session_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderIncompleteSessions.timeRange }}]
+            )
+          )
+        ) 
+        / 
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_session_connection_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderIncompleteSessions.timeRange }}]
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.callRecorderIncompleteSessions.percentageThreshold }}
+    
+  #16-------------------------------
+  - alert: kr-call_recorder_connection_error
+    labels:
+      severity: error
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}      
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Krypton service {{ "{{" }} $labels.service {{ "}}" }} has encountered multiple connections errors to Call log aggregator (Clag). Please verify if Clag is running with the configured setting in Krypton. If problem persists, collect diagnotics logs of Clag and Krypton; and escalate to support."
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.callRecorderConnectionErrors.timeRange }}], Threshold: {{ .Values.alertConfigurations.callRecorderConnectionErrors.percentageThreshold }}, forTimeInterval: {{ .Values.alertConfigurations.callRecorderConnectionErrors.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'  
+    for: {{ .Values.alertConfigurations.callRecorderConnectionErrors.timeInterval }} 
+    expr: >-
+      (
+        sum by(service) (
+          round (
+            increase (
+              kr_call_recorder_connection_error_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                [{{ .Values.alertConfigurations.callRecorderConnectionErrors.timeRange }}]
+            )
+          )
+        ) 
+        / 
+        (
+          sum by(service) (
+            round (
+              increase (
+                kr_call_recorder_session_connection_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                  [{{ .Values.alertConfigurations.callRecorderConnectionErrors.timeRange }}]
+              )
+            )
+          ) 
+          + 
+          sum by(service) (
+            round (
+              increase (
+                kr_call_recorder_connection_error_total{namespace="{{ .Release.Namespace }}",service="{{ template "krypton.fullname" . }}"}
+                  [{{ .Values.alertConfigurations.callRecorderConnectionErrors.timeRange }}]
+              )
+            )
+          )
+        )
+      ) * 100 
+      >= {{ .Values.alertConfigurations.callRecorderConnectionErrors.percentageThreshold }}
+
+    
+  #17-------------------------------
+  - alert: kr-pod_container_krypton_restart 
+    labels:
+      severity: critical
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}  
+      {{ toYaml .Values.alertConfigurations.alertLabels | nindent 6 }}
+    annotations:
+      summary: "Frequent container restart observed for service {{ template "krypton.fullname" . }} and for container  {{ template "krypton-container.name" . }} ."  
+      alertConfig: "TimeRange: [{{ .Values.alertConfigurations.podRestart.timeRange }}],  Threshold: {{ .Values.alertConfigurations.podRestart.avgThresholdCount }}, forTimeInterval: {{ .Values.alertConfigurations.podRestart.timeInterval }}"
+      now_value: '{{ "{{" }} $value {{ "}}" }}'  
+    for: {{ .Values.alertConfigurations.podRestart.timeInterval }}
+    expr: >-
+      sum (
+        round (
+          increase (
+            kube_pod_container_status_restarts_total{job="kube-state-metrics", namespace="{{ .Release.Namespace }}", pod=~"{{ template "krypton.fullname" . }}.*",container="{{ template "krypton-container.name" . }}"}
+              [{{ .Values.alertConfigurations.podRestart.timeRange }}]
+          )
+        )
+      ) 
+      > {{ .Values.alertConfigurations.podRestart.avgThresholdCount }}
+ 
+{{- end }}
+
+{{- if eq .Values.alertConfigurations.enableAlerts true }}
+
+{{- if eq .Values.prometheusOperator.enable false -}}
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "krypton.fullname" . }}-alerts
+  annotations:
+    {{- toYaml .Values.alertConfigurations.configmap.annotations | nindent 4 }}
+  labels:
+    {{- toYaml .Values.prometheus.alerts.selectorLabels | nindent 4 }}
+data:
+  alert-rules.yaml: |-
+    {{- include "alert-rules" . | nindent 4 }}
+
+{{- else -}}
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "krypton.fullname" . }}
+  labels:
+    {{- toYaml .Values.prometheusOperator.prometheusRulesLabels | nindent 4 }}
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  namespace: {{ .Values.prometheusOperator.namespace }}
+spec:
+  {{- include "alert-rules" . | nindent 2 }}
+
+{{- end }}
+
+{{- end }}

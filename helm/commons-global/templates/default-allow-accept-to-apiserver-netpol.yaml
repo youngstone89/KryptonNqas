@@ -1,0 +1,23 @@
+{{- if and (eq .Values.commons.enabled true) (eq .Values.commons.networkPolicy.defaultPolicies true) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "commons-global.fullname" . }}-default-allow-accept-to-apiserver-netpol
+  annotations:
+{{ toYaml .Values.commons.networkPolicy.annotations | indent 4 }}    
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    namespace.crt.nuance.com/owner: infra-addons-manager
+    pool: {{ template "commons-global.name" . }}-netpol
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+#    to:
+#    - ipBlock:
+#        cidr: 40.117.142.206/32
+{{- end}}

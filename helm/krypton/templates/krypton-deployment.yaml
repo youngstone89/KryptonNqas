@@ -1,0 +1,443 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 4 }}   
+  name: {{ template "krypton.fullname" . }}
+  labels:
+    app: {{ template "krypton.name" . }}
+    chart: {{ template "krypton.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.image.tag }}
+    image: {{ .Values.image.tag }}
+{{- end }}        
+{{- if .Values.deployment.deploymentLabels }} 
+{{- toYaml .Values.deployment.deploymentLabels | nindent 4 }}     
+{{- end }}        
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "krypton.name" . }}
+      release: {{ .Release.Name }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }}
+  template:
+    metadata:
+      labels:
+        engine: krypton
+        app: {{ template "krypton.name" . }}
+        release: {{ .Release.Name }}
+        poolname: {{ .Release.Name }}
+{{- if .Values.deployment.podLabels }} 
+{{- toYaml .Values.deployment.podLabels | nindent 8 }}     
+{{- end }}        
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/krypton-configmap.yaml") . | sha256sum }}
+{{- if .Values.deployment.podAnnotations }} 
+        {{ toYaml .Values.deployment.podAnnotations | nindent 8 }}     
+{{- end }}         
+    spec:
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}      
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- if eq .Values.config.additionalInitializeParameters.DisableSharedMemory false }}
+      hostIPC: true
+      hostPID: true
+{{- end}}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      containers:
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+      - name: fluentbit
+        image: {{ .Values.fluentBitSideCar.image.repository }}:{{ .Values.fluentBitSideCar.image.tag }}
+        imagePullPolicy: {{ .Values.fluentBitSideCar.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.fluentBitSideCar.resources | indent 10 }}
+        ports:
+          - name: fluentbit-port
+            containerPort: 7700
+        livenessProbe:
+          httpGet:
+            path: /
+            port: fluentbit-port
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: fluentbit-port
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: krypton-file-log-volume
+          mountPath: /var/local/Nuance/Krypton/logs
+        - name: fluent-bit-configmap-volume
+          mountPath: /fluent-bit/etc/fluent-bit.conf
+          subPath: fluent-bit.conf
+        - name: fluent-bit-parser-config-volume
+          mountPath: /fluent-bit/etc/parser.conf
+          subPath: parser.conf
+        - name: fluent-bit-kvs-lua-volume
+          mountPath: /fluent-bit/etc/kvs.lua
+          subPath: kvs.lua
+        - name: fluent-bit-service-config-volume
+          mountPath: /fluent-bit/etc/service.conf
+          subPath: service.conf
+        - name: fluent-bit-output-config-volume
+          mountPath: /fluent-bit/etc/output.conf
+          subPath: output.conf
+        - name: fluent-bit-input-config-volume
+          mountPath: /fluent-bit/etc/input.conf
+          subPath: input.conf
+        - name: fluent-bit-filter-config-volume
+          mountPath: /fluent-bit/etc/filter.conf
+          subPath: filter.conf
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: IMAGE
+          value: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        - name: HELM_RELEASE_NAME
+          value: {{ .Release.Name }}
+        - name: SERVICE
+          value: {{ template "krypton.fullname" . }}
+{{- end}}
+{{- if eq .Values.fluentd.enabled true }}
+      - name: fluentd
+        image: {{ .Values.fluentd.image.repository }}:{{ .Values.fluentd.image.tag }}
+        imagePullPolicy: {{ .Values.fluentd.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.fluentd.resources | indent 10 }}
+        ports:
+          - name: fluentd-port
+            containerPort: 7701
+        livenessProbe:
+          httpGet:
+            path: /fluentd.healthcheck?json={}
+            port: fluentd-port
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /fluentd.healthcheck?json={}
+            port: fluentd-port
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: krypton-file-log-volume
+          mountPath: /var/local/Nuance/Krypton/logs
+        - name: fluentd-service-config-volume
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+{{- end}}
+{{- if eq .Values.jaegerAgentSideCar.enabled true }}
+      - name: jaeger-agent
+        image: {{ .Values.jaegerAgentSideCar.image }}:{{ .Values.jaegerAgentSideCar.tag }}
+        imagePullPolicy: {{ .Values.jaegerAgentSideCar.pullPolicy }}
+        env:
+        - name: COLLECTOR_HOST_PORT
+          value: {{ .Values.jaegerAgentSideCar.config.collectorHostPort }}
+        {{- range $key, $value := .Values.jaegerAgentSideCar.cmdlineParams }}
+        - name: {{ $key | replace "." "_" | replace "-" "_" | upper | quote }}
+          value: {{ $value }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.jaegerAgentSideCar.config.zipkinThriftPort }}
+          protocol: UDP
+        - containerPort: {{ .Values.jaegerAgentSideCar.config.compactPort }}
+          protocol: UDP
+        - containerPort: {{ .Values.jaegerAgentSideCar.config.binaryPort }}
+          protocol: UDP
+        - containerPort: {{ .Values.jaegerAgentSideCar.config.samplingPort }}
+          protocol: TCP
+          name: sampling-port
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: sampling-port
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: sampling-port
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+{{ toYaml .Values.jaegerAgentSideCar.resources | indent 10 }}
+{{- end}}
+      - name: {{ template "krypton-container.name" . }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_ENV
+          value: {{ .Values.configFileName }}
+{{- if .Values.uvThreadPoolSize}}
+        - name: UV_THREADPOOL_SIZE
+          value: {{ .Values.uvThreadPoolSize }}
+{{- end}}
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ENGINE_UUID
+          value: {{ .Release.Name }}
+        - name: MY_SVC_NAME
+          value: {{ template "krypton.fullname" . }}
+        - name: SERVICE
+          value: {{ template "krypton.fullname" . }}
+        - name: MY_RELEASE_NAME
+          value: {{ .Release.Name }}
+        - name: MY_NAMESPACE_NAME
+          value: {{ .Release.Namespace }}
+        - name: DATA_PACKS
+          value: |-
+            dataPack:
+{{ toYaml .Values.config.dataPack | indent 14 }} 
+{{- if .Values.environment}}   
+{{ toYaml .Values.environment | indent 8 }}      
+{{- end }}       
+        readinessProbe:
+          httpGet:
+{{- if eq .Values.http.enable true}}
+            path: /ping
+            port: krypton-http
+{{- else }}
+            path: /ping
+            scheme: HTTPS
+            port: krypton-https
+{{- end }}
+{{ toYaml .Values.readiness | indent 10 }}
+        livenessProbe:
+          httpGet:
+{{- if eq .Values.http.enable true}}
+            path: /ping
+            port: krypton-http
+{{- else }}
+            path: /ping
+            scheme: HTTPS
+            port: krypton-https
+{{- end }}
+{{ toYaml .Values.liveness | indent 10 }}
+        ports:
+{{- if eq .Values.http.enable true}}
+        - containerPort: {{ .Values.http.port }}
+          name: krypton-http
+{{- end }}
+{{- if eq .Values.https.enable true}}
+        - containerPort: {{ .Values.https.port }}
+          name: krypton-https
+{{- end }}
+{{- if eq .Values.http2.enable true}}
+        - containerPort: {{ .Values.http2.port }}
+          name: krypton-grpc
+{{- end }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+          - name: data-packs-volume
+            mountPath: "/usr/local/Nuance/Data_Packs/"
+          - name: krypton-secret-volume-ssl
+            mountPath: /var/local/Nuance/Krypton/config/SSLCertificates
+          - name: krypton-configmap-volume
+            mountPath: /var/local/Nuance/Krypton/config/{{ .Values.configFileName }}.yaml
+            subPath: {{ .Values.configFileName }}.yaml
+        {{- if (.Values.config.callRecording) and (.Values.config.callRecording.PCIKey) }}
+          - name: krypton-secret-volume
+            mountPath: /var/local/Nuance/Krypton/config/PCIKeys
+        {{- end}}
+          - name: krypton-runtime-configmap-volume
+            mountPath: /var/local/Nuance/Krypton/config/runtimeconfig        
+        {{- if (eq .Values.diagnosticLogs.enableFile true)}}
+          - name: krypton-file-log-volume
+            mountPath: /var/local/Nuance/Krypton/logs
+        {{- else }}
+        {{- if .Values.config.callLogging }}
+        {{- if or .Values.config.callLogging.rpc .Values.config.callLogging.callSummary}}
+        {{- if or (eq .Values.config.callLogging.rpc.enable true) (eq .Values.config.callLogging.callSummary.enable true)}}
+          - name: krypton-file-log-volume
+            mountPath: /var/local/Nuance/Krypton/logs
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        
+      securityContext:
+        runAsUser: 789
+        runAsGroup: 789
+        runAsNonRoot: true
+      volumes:
+        - name: data-packs-volume
+{{- if eq .Values.persistence.volumeType "nfs" "other" }}
+          persistentVolumeClaim:
+            claimName: {{ template "krypton.fullname" . }}
+{{- end }}
+{{- if eq .Values.persistence.volumeType "hostPath"  }}
+          hostPath:
+            path: {{ .Values.persistence.hostMountPath }}
+{{- end }}
+{{- if eq .Values.persistence.volumeType "existingClaim" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+{{- end }}
+        - name: krypton-configmap-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: {{ .Values.configFileName }}.yaml
+              path: {{ .Values.configFileName }}.yaml
+              mode: 420
+        - name: krypton-secret-volume-ssl
+          secret:
+{{- if .Values.https.secretName}}     
+            secretName: {{ .Values.https.secretName }}
+{{- else }}
+            secretName: {{ template "krypton.fullname" . }}-ssl
+{{- end }}
+{{- if (.Values.config.callRecording) and (.Values.config.callRecording.PCIKey) }}
+        - name: krypton-secret-volume
+          secret:
+{{- if .Values.pCIKeySecretName}}     
+            secretName: {{ .Values.pCIKeySecretName }}
+{{- else }}
+            secretName: {{ template "krypton.fullname" . }}
+{{- end }} 
+{{- end}}
+        - name: krypton-runtime-configmap-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}-runtime
+            items:
+            - key: runtime{{ .Values.configFileName }}.yaml
+              path: runtime{{ .Values.configFileName }}.yaml
+              mode: 420
+{{- if eq .Values.diagnosticLogs.enableFile true }}
+        - name: krypton-file-log-volume
+{{- if .Values.diagnosticLogs.hostMountPath }}
+          hostPath:
+            path: {{required "A valid .Values.diagnosticLogs.hostMountPath entry required!" .Values.diagnosticLogs.hostMountPath }}
+            type: Directory
+{{- else }}
+          emptyDir: {}
+{{- end }}
+{{- else }}
+{{- if .Values.config.callLogging }}
+{{- if or .Values.config.callLogging.rpc .Values.config.callLogging.callSummary}}
+{{- if or (eq .Values.config.callLogging.rpc.enable true) (eq .Values.config.callLogging.callSummary.enable true)}}
+        - name: krypton-file-log-volume
+{{- if .Values.diagnosticLogs.hostMountPath }}
+          hostPath:
+            path: {{required "A valid .Values.diagnosticLogs.hostMountPath entry required!" .Values.diagnosticLogs.hostMountPath }}
+            type: Directory
+{{- else }}
+          emptyDir: {}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if eq .Values.fluentBitSideCar.enabled true }}
+        - name: fluent-bit-configmap-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: fluent-bit.conf
+              path: fluent-bit.conf
+              mode: 420
+        - name: fluent-bit-kvs-lua-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: kvs.lua
+              path: kvs.lua
+              mode: 420
+        - name: fluent-bit-parser-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: parser.conf
+              path: parser.conf
+              mode: 420
+        - name: fluent-bit-service-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: service.conf
+              path: service.conf
+              mode: 420
+        - name: fluent-bit-output-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: output.conf
+              path: output.conf
+              mode: 420
+        - name: fluent-bit-input-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: input.conf
+              path: input.conf
+              mode: 420
+        - name: fluent-bit-filter-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: filter.conf
+              path: filter.conf
+              mode: 420
+{{- end }}
+{{- if eq .Values.fluentd.enabled true }}        
+        - name: fluentd-service-config-volume
+          configMap:
+            name: {{ template "krypton.fullname" . }}
+            items:
+            - key: fluent.conf
+              path: fluent.conf
+              mode: 420
+{{- end }}

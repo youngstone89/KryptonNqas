@@ -1,0 +1,18 @@
+{{- if eq .Values.haproxyIngress.enabled true}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "commons-global.fullname" . }}-backend
+  labels:
+    app: {{ template "commons-global.name" . }}-backend
+    chart: {{ template "commons-global.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: {{ template "commons-global.name" . }}-backend
+    release: {{ .Release.Name }}
+{{- end }}
